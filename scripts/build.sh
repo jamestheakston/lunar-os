@@ -78,6 +78,8 @@ LB_COMPRESSION="xz"
 LB_MEMTEST="none"
 LB_GRUB_PASSWORD=""
 LB_PERSISTENT="none"
+LB_LINUX_PACKAGES="linux-image-amd64"
+LB_BOOTAPPEND_LIVE="boot=live components quiet splash"
 EOF
 
 # Copy package lists
