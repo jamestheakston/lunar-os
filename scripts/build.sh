@@ -107,9 +107,14 @@ if [ -d "$PROJECT_ROOT/config/includes.binary" ]; then
     cp -r "$PROJECT_ROOT/config/includes.binary"/* config/includes.binary/
 fi
 
-# Copy hooks
+# Copy hooks - ensure hooks are copied to the right location with structure preserved
 if [ -d "$PROJECT_ROOT/config/hooks" ]; then
-    cp -r "$PROJECT_ROOT/config/hooks"/* config/hooks/
+    echo "Copying hooks from $PROJECT_ROOT/config/hooks to config/hooks/"
+    cp -r "$PROJECT_ROOT/config/hooks/"* config/hooks/
+    echo "Hook directories in config/hooks/:"
+    ls -la config/hooks/
+    echo "Contents of normal.chroot:"
+    ls -la config/hooks/normal.chroot/ 2>/dev/null || echo "normal.chroot not found"
 fi
 
 # Copy bootloader configuration
