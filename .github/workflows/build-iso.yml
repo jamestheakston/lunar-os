@@ -17,6 +17,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 360  # 6 hours
+    container:
+      image: debian:bookworm
+      options: --privileged
     
     steps:
     - name: Checkout code
@@ -24,8 +27,8 @@ jobs:
     
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        apt-get update
+        apt-get install -y \
           live-build \
           debootstrap \
           syslinux-utils \
@@ -50,7 +53,7 @@ jobs:
     
     - name: Build ISO
       run: |
-        sudo ./scripts/build.sh
+        ./scripts/build.sh
     
     - name: Get ISO filename
       id: iso-filename
