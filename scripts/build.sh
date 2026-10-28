@@ -51,7 +51,6 @@ lb config \
     --parent-mirror-bootstrap "http://deb.debian.org/debian" \
     --parent-mirror-chroot "http://deb.debian.org/debian" \
     --parent-mirror-binary "http://deb.debian.org/debian" \
-    --linux-packages "linux-image-amd64" \
     --bootappend-live "boot=live components quiet splash"
 
 # Apply custom configurations
@@ -80,7 +79,6 @@ LB_COMPRESSION="xz"
 LB_MEMTEST="none"
 LB_GRUB_PASSWORD=""
 LB_PERSISTENT="none"
-LB_LINUX_PACKAGES="linux-image-amd64"
 LB_BOOTAPPEND_LIVE="boot=live components quiet splash"
 LB_PACKAGES_LISTS="standard xfce-desktop"
 EOF
