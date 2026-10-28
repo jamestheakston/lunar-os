@@ -92,6 +92,11 @@ else
     exit 1
 fi
 
+# Also copy to chroot_local-includes for the install hook
+mkdir -p config/chroot_local-includes/tmp
+cp "$PROJECT_ROOT/config/packages.list" config/chroot_local-includes/tmp/lunar-packages.txt
+echo "Package list also copied to chroot_local-includes/tmp/lunar-packages.txt"
+
 # Copy chroot includes (files to be added to the system)
 if [ -d "$PROJECT_ROOT/config/includes.chroot" ]; then
     cp -r "$PROJECT_ROOT/config/includes.chroot"/* config/includes.chroot/
