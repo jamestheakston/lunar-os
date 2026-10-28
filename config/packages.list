@@ -5,15 +5,16 @@ live-config
 live-config-systemd
 live-tools
 
-# Desktop environment (XFCE and components)
-xfce4
-xfce4-goodies
-xfce4-terminal
-xfce4-whiskermenu-plugin
-xfce4-pulseaudio-plugin
-xfce4-power-manager
-xfce4-screenshooter
-xfce4-clipman-plugin
+# Desktop environment (LXDE - lighter and faster to build)
+lxde
+lxde-core
+lxde-icon-theme
+lxde-settings
+lxde-common
+lxde-meta
+openbox
+pcmanfm
+lxterminal
 
 # Display manager
 lightdm
@@ -25,12 +26,9 @@ plymouth-themes
 plymouth-x11
 
 # File manager and utilities
-thunar
-thunar-archive-plugin
-thunar-volman
+pcmanfm
 gvfs-backends
 gvfs-fuse
-file-roller
 
 # Text editor
 mousepad
@@ -39,22 +37,15 @@ mousepad
 firefox-esr
 
 # System utilities
-system-monitor
-gnome-system-monitor
-calculator
-galculator
-
-# Image viewer
-ristretto
-
-# PDF viewer
-evince
+lxtask
+gpicview
+lxrandr
+lxpolkit
 
 # Network management
 network-manager
 network-manager-gnome
 modemmanager
-mobile-broadband-provider-info
 bluez
 bluez-firmware
 
@@ -73,20 +64,14 @@ wget
 curl
 sudo
 policykit-1
-polkit-gnome
 
 # Fonts
 fonts-dejavu-core
 fonts-dejavu
 fonts-liberation
 fonts-noto
-fonts-noto-cjk
 
 # Python for custom scripts
 python3
 python3-gi
 python3-gi-cairo
-
-# Desktop theming
-gtk2-engines-murrine
-gtk2-engines-pixbuf
