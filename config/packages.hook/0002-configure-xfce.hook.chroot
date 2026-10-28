@@ -1,0 +1,57 @@
+#!/bin/bash
+# Hook to configure XFCE desktop environment for Lunar OS
+
+set -e
+
+echo "Configuring XFCE desktop environment..."
+
+# Get the username
+USERNAME="lunar"
+USER_HOME="/home/$USERNAME"
+
+# Create user directories
+mkdir -p "$USER_HOME"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
+chown -R $USERNAME:$USERNAME "$USER_HOME"
+
+# Copy XFCE configuration
+mkdir -p "$USER_HOME/.config/xfce4"
+mkdir -p "$USER_HOME/.config/xfce4/panel"
+mkdir -p "$USER_HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+
+# Copy desktop assets (wallpaper, icons, etc.)
+if [ -d /tmp/lunar-assets/desktop ]; then
+    cp -r /tmp/lunar-assets/desktop/* "$USER_HOME/.config/"
+    chown -R $USERNAME:$USERNAME "$USER_HOME/.config"
+fi
+
+# Copy wallpaper to system location
+if [ -f /tmp/lunar-assets/desktop/wallpaper.png ]; then
+    mkdir -p /usr/share/backgrounds/lunar-os
+    cp /tmp/lunar-assets/desktop/wallpaper.png /usr/share/backgrounds/lunar-os/
+fi
+
+# Configure LightDM to auto-login
+if [ -f /etc/lightdm/lightdm.conf ]; then
+    sed -i 's/^#autologin-user=.*/autologin-user=lunar/' /etc/lightdm/lightdm.conf
+    sed -i 's/^#autologin-user-timeout=.*/autologin-user-timeout=0/' /etc/lightdm/lightdm.conf
+fi
+
+# Configure LightDM GTK greeter
+if [ -f /etc/lightdm/lightdm-gtk-greeter.conf ]; then
+    cat > /etc/lightdm/lightdm-gtk-greeter.conf << EOF
+[greeter]
+background=/usr/share/backgrounds/lunar-os/wallpaper.png
+theme-name=Adwaita-dark
+icon-theme-name=Adwaita
+font-name=Sans 10
+position=50%,center
+default-session=xfce
+EOF
+fi
+
+# Disable XFCE screensaver by default
+if [ -f "$USER_HOME/.xscreensaver" ]; then
+    rm -f "$USER_HOME/.xscreensaver"
+fi
+
+echo "XFCE desktop configured"

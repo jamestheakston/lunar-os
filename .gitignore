@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+*.iso
+*.sha256
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,110 @@
+name: Build Lunar OS ISO
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release with the ISO'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          live-build \
+          debootstrap \
+          syslinux-utils \
+          grub-pc-bin \
+          grub-common \
+          xorriso \
+          mtools \
+          squashfs-tools \
+          wget \
+          curl \
+          git \
+          python3 \
+          python3-pip
+    
+    - name: Install Python dependencies
+      run: |
+        pip3 install Pillow --break-system-packages
+    
+    - name: Generate assets
+      run: |
+        cd lunar-os
+        ./scripts/generate-assets.sh
+    
+    - name: Build ISO
+      run: |
+        cd lunar-os
+        sudo ./scripts/build.sh
+    
+    - name: Get ISO filename
+      id: iso-filename
+      run: |
+        cd lunar-os/build
+        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
+        if [ -z "$ISO_FILE" ]; then
+          echo "No ISO file found!"
+          exit 1
+        fi
+        echo "filename=$ISO_FILE" >> $GITHUB_OUTPUT
+        echo "ISO file: $ISO_FILE"
+    
+    - name: Generate checksum
+      run: |
+        cd lunar-os/build
+        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
+        sha256sum "$ISO_FILE" > "$ISO_FILE.sha256"
+        echo "Checksum generated:"
+        cat "$ISO_FILE.sha256"
+    
+    - name: Upload ISO as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lunar-os-iso
+        path: lunar-os/build/*.iso
+        retention-days: 7
+    
+    - name: Upload checksum as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lunar-os-checksum
+        path: lunar-os/build/*.sha256
+        retention-days: 7
+    
+    - name: Get ISO size
+      run: |
+        cd lunar-os/build
+        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
+        ls -lh "$ISO_FILE"
+    
+    - name: Create Release (if triggered)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cd lunar-os/build
+        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
+        VERSION=$(date +%Y%m%d-%H%M%S)
+        
+        gh release create "v$VERSION" \
+          "$ISO_FILE" \
+          "$ISO_FILE.sha256" \
+          --title "Lunar OS $VERSION" \
+          --notes "Automated build of Lunar OS ISO. SHA256 checksum included."

@@ -1,0 +1,47 @@
+#!/bin/bash
+# Hook to configure custom shutdown dialog for Lunar OS
+
+set -e
+
+echo "Configuring Lunar OS shutdown dialog..."
+
+# Create shutdown dialog application
+APP_DIR="/usr/share/lunar-os"
+mkdir -p "$APP_DIR"
+
+# Copy shutdown dialog script
+if [ -f /tmp/lunar-assets/desktop/shutdown-dialog.py ]; then
+    cp /tmp/lunar-assets/desktop/shutdown-dialog.py "$APP_DIR/"
+    chmod +x "$APP_DIR/shutdown-dialog.py"
+fi
+
+# Replace XFCE logout action with custom dialog
+# This will be done by modifying the XFCE panel configuration
+
+# Create a wrapper script for shutdown/restart
+cat > /usr/local/bin/lunar-shutdown << 'EOF'
+#!/bin/bash
+# Lunar OS custom shutdown dialog
+/usr/share/lunar-os/shutdown-dialog.py
+EOF
+chmod +x /usr/local/bin/lunar-shutdown
+
+cat > /usr/local/bin/lunar-restart << 'EOF'
+#!/bin/bash
+# Lunar OS custom restart dialog
+/usr/share/lunar-os/shutdown-dialog.py --restart
+EOF
+chmod +x /usr/local/bin/lunar-restart
+
+# Configure polkit to allow shutdown without password (for live session)
+mkdir -p /etc/polkit-1/localauthority/50-local.d
+cat > /etc/polkit-1/localauthority/50-local.d/60-lunar-shutdown.pkla << EOF
+[Allow Lunar Shutdown]
+Identity=unix-user:*
+Action=org.freedesktop.login1.power-off;org.freedesktop.login1.power-off-multiple-sessions;org.freedesktop.login1.reboot;org.freedesktop.login1.reboot-multiple-sessions
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF
+
+echo "Shutdown dialog configured"

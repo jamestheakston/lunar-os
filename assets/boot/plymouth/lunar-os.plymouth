@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Lunar OS
+Description=A minimalist boot screen for Lunar OS
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/lunar-os
+ScriptFile=/usr/share/plymouth/themes/lunar-os/lunar-os.script

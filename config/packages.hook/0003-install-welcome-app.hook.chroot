@@ -1,0 +1,54 @@
+#!/bin/bash
+# Hook to install Lunar OS welcome window application
+
+set -e
+
+echo "Installing Lunar OS welcome application..."
+
+# Create application directory
+APP_DIR="/usr/share/lunar-os"
+mkdir -p "$APP_DIR"
+
+# Copy welcome application files
+if [ -f /tmp/lunar-assets/desktop/welcome.py ]; then
+    cp /tmp/lunar-assets/desktop/welcome.py "$APP_DIR/"
+    chmod +x "$APP_DIR/welcome.py"
+fi
+
+# Copy welcome window icon
+if [ -f /tmp/lunar-assets/desktop/welcome-icon.png ]; then
+    cp /tmp/lunar-assets/desktop/welcome-icon.png "$APP_DIR/"
+fi
+
+# Create desktop entry for the welcome app
+mkdir -p /usr/share/applications
+cat > /usr/share/applications/lunar-welcome.desktop << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Welcome to Lunar OS
+Comment=Welcome window for Lunar OS
+Exec=/usr/share/lunar-os/welcome.py
+Icon=/usr/share/lunar-os/welcome-icon.png
+Terminal=false
+Categories=Utility;
+StartupNotify=true
+EOF
+
+# Create autostart entry (this makes it run automatically on login)
+mkdir -p /etc/xdg/autostart
+cat > /etc/xdg/autostart/lunar-welcome.desktop << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Welcome to Lunar OS
+Comment=Welcome window for Lunar OS
+Exec=/usr/share/lunar-os/welcome.py
+Icon=/usr/share/lunar-os/welcome-icon.png
+Terminal=false
+Categories=Utility;
+StartupNotify=true
+X-GNOME-Autostart-enabled=true
+EOF
+
+echo "Welcome application installed"

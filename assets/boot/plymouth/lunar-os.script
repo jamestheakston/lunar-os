@@ -1,0 +1,110 @@
+# Lunar OS Plymouth Boot Script
+# Minimalist lunar-themed boot screen
+
+# Define colors
+lunar_bg = Color("#1a1a2e");  # Deep charcoal/midnight blue
+lunar_silver = Color("#c0c0c0");  # Soft silver
+lunar_violet = Color("#6c5ce7");  # Violet accent
+text_color = Color("#ffffff");  # White text
+
+# Screen dimensions
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+# Create background
+background = Image(screen_width, screen_height);
+background.Fill(lunar_bg);
+Window.SetBackground(background);
+
+# Logo position (centered)
+logo_x = screen_width / 2;
+logo_y = screen_height / 2 - 50;
+
+# Status text position
+status_x = screen_width / 2;
+status_y = screen_height / 2 + 100;
+
+# Loading indicator position
+spinner_x = screen_width / 2;
+spinner_y = screen_height / 2 + 60;
+
+# Draw moon-like logo (simple circle with crescent)
+moon = Image(100, 100);
+moon.Fill(lunar_silver);
+moon_logo = moon.Scale(80, 80);
+
+# Status message
+status_message = "Preparing your temporary session...";
+status = Text();
+status.Text = status_message;
+status.Color = text_color;
+status.Font = "Sans 12";
+status.SetAlign(status_x, status_y);
+
+# Loading spinner (dots)
+spinner_dots = [];
+for i = 0 to 5 do
+    dot = Image(8, 8);
+    dot.Fill(lunar_violet);
+    spinner_dots[i] = dot;
+end
+
+# Animation variables
+spinner_angle = 0;
+spinner_radius = 30;
+
+# Function to update spinner
+fun update_spinner(progress)
+{
+    # Clear spinner area
+    # (In a real implementation, we'd clear and redraw)
+    
+    # Update spinner angle
+    spinner_angle = spinner_angle + 10;
+    
+    # Draw dots in a circle
+    for i = 0 to 5 do
+        angle = spinner_angle + (i * 60);
+        dot_x = spinner_x + (spinner_radius * Math.Cos(angle));
+        dot_y = spinner_y + (spinner_radius * Math.Sin(angle));
+        spinner_dots[i].SetPosition(dot_x, dot_y);
+    end
+}
+
+# Main animation loop
+fun dialog_setup()
+{
+    # Set up any dialog boxes
+}
+
+fun dialog_normal()
+{
+    # Default dialog state
+}
+
+fun dialog_password()
+{
+    # Password dialog state
+}
+
+fun dialog_question()
+{
+    # Question dialog state
+}
+
+fun refresh_callback()
+{
+    # Update spinner animation
+    if (progress < 1) then
+        update_spinner(progress);
+    fi;
+}
+
+# Display logo centered
+moon_logo.SetPosition(logo_x - 40, logo_y - 40);
+
+# Initial status
+status.SetPosition(status_x, status_y);
+
+# Start animation
+Plymouth.SetRefreshFunction(refresh_callback);

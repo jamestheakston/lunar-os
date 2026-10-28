@@ -1,0 +1,72 @@
+#!/bin/bash
+# Hook to configure user home directory and desktop settings
+
+set -e
+
+echo "Configuring user home directory..."
+
+USERNAME="lunar"
+USER_HOME="/home/$USERNAME"
+
+# Create user directories
+mkdir -p "$USER_HOME"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
+chown -R $USERNAME:$USERNAME "$USER_HOME"
+
+# Create default desktop shortcuts
+cat > "$USER_HOME/Desktop/File Manager.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=File Manager
+Icon=folder
+URL=/home/lunar
+EOF
+chmod +x "$USER_HOME/Desktop/File Manager.desktop"
+chown $USERNAME:$USERNAME "$USER_HOME/Desktop/File Manager.desktop"
+
+cat > "$USER_HOME/Desktop/Documents.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=Documents
+Icon=folder-documents
+URL=/home/lunar/Documents
+EOF
+chmod +x "$USER_HOME/Desktop/Documents.desktop"
+chown $USERNAME:$USERNAME "$USER_HOME/Desktop/Documents.desktop"
+
+cat > "$USER_HOME/Desktop/Downloads.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=Downloads
+Icon=folder-downloads
+URL=/home/lunar/Downloads
+EOF
+chmod +x "$USER_HOME/Desktop/Downloads.desktop"
+chown $USERNAME:$USERNAME "$USER_HOME/Desktop/Downloads.desktop"
+
+# Create .desktop file for custom shutdown in panel
+cat > /usr/share/applications/lunar-shutdown.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Shut Down
+Icon=system-shutdown
+Exec=/usr/local/bin/lunar-shutdown
+Terminal=false
+Categories=System;
+EOF
+
+cat > /usr/share/applications/lunar-restart.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Restart
+Icon=system-reboot
+Exec=/usr/local/bin/lunar-restart
+Terminal=false
+Categories=System;
+EOF
+
+echo "User home directory configured"
