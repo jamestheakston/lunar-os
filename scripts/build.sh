@@ -43,38 +43,36 @@ cd "$PROJECT_ROOT/build"
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
 
+# Initialize live-build config first
+lb config 2>/dev/null || true
+
 # Copy live-build config file
 if [ -f "$CONFIG_DIR/config" ]; then
-    cp "$CONFIG_DIR/config" config
+    cp "$CONFIG_DIR/config" config/config
 fi
 
 # Copy package lists (live-build expects config/packages.list.chroot)
 if [ -f "$PROJECT_ROOT/config/packages.list" ]; then
-    mkdir -p config
     cp "$PROJECT_ROOT/config/packages.list" config/packages.list.chroot
 fi
 
 # Copy chroot includes (files to be added to the system)
 if [ -d "$PROJECT_ROOT/config/includes.chroot" ]; then
-    mkdir -p config/includes.chroot
     cp -r "$PROJECT_ROOT/config/includes.chroot"/* config/includes.chroot/
 fi
 
 # Copy binary includes (files to be added to the ISO)
 if [ -d "$PROJECT_ROOT/config/includes.binary" ]; then
-    mkdir -p config/includes.binary
     cp -r "$PROJECT_ROOT/config/includes.binary"/* config/includes.binary/
 fi
 
 # Copy hooks
 if [ -d "$PROJECT_ROOT/config/packages.hook" ]; then
-    mkdir -p config/hooks
     cp -r "$PROJECT_ROOT/config/packages.hook"/* config/hooks/
 fi
 
 # Copy bootloader configuration
 if [ -d "$PROJECT_ROOT/config/bootloaders" ]; then
-    mkdir -p config/bootloaders
     cp -r "$PROJECT_ROOT/config/bootloaders"/* config/bootloaders/
 fi
 
