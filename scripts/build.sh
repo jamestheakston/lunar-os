@@ -50,7 +50,9 @@ lb config \
     --mirror-binary-security "http://security.debian.org/debian-security" \
     --parent-mirror-bootstrap "http://deb.debian.org/debian" \
     --parent-mirror-chroot "http://deb.debian.org/debian" \
-    --parent-mirror-binary "http://deb.debian.org/debian"
+    --parent-mirror-binary "http://deb.debian.org/debian" \
+    --linux-packages "linux-image-amd64" \
+    --bootappend-live "boot=live components quiet splash"
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
