@@ -82,6 +82,7 @@ LB_GRUB_PASSWORD=""
 LB_PERSISTENT="none"
 LB_LINUX_PACKAGES="linux-image-amd64"
 LB_BOOTAPPEND_LIVE="boot=live components quiet splash"
+LB_PACKAGES_LISTS="standard xfce-desktop"
 EOF
 
 # Copy package lists
