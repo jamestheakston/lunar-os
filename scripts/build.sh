@@ -51,8 +51,7 @@ lb config \
     --parent-mirror-bootstrap "http://deb.debian.org/debian" \
     --parent-mirror-chroot "http://deb.debian.org/debian" \
     --parent-mirror-binary "http://deb.debian.org/debian" \
-    --bootappend-live "boot=live components quiet splash" \
-    --package-lists "standard xfce-desktop"
+    --bootappend-live "boot=live components quiet splash"
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
@@ -84,7 +83,13 @@ EOF
 
 # Copy package lists
 if [ -f "$PROJECT_ROOT/config/packages.list" ]; then
+    echo "Copying packages.list to config/packages.list.chroot"
     cp "$PROJECT_ROOT/config/packages.list" config/packages.list.chroot
+    echo "Package list contents:"
+    head -20 config/packages.list.chroot
+else
+    echo "ERROR: packages.list not found at $PROJECT_ROOT/config/packages.list"
+    exit 1
 fi
 
 # Copy chroot includes (files to be added to the system)
