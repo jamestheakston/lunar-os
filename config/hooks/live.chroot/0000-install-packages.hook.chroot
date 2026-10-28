@@ -1,0 +1,18 @@
+#!/bin/bash
+# Hook to install Lunar OS packages directly
+set -e
+
+echo "=== Installing Lunar OS packages ==="
+
+# Update apt
+apt-get update
+
+# Install all packages from our list
+if [ -f /tmp/lunar-packages.txt ]; then
+    echo "Package list found, installing packages..."
+    xargs -a /tmp/lunar-packages.txt apt-get install -y
+    echo "=== Packages installed successfully ==="
+else
+    echo "ERROR: /tmp/lunar-packages.txt not found"
+    exit 1
+fi
