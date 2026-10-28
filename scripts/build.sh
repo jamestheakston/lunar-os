@@ -40,17 +40,13 @@ fi
 mkdir -p "$PROJECT_ROOT/build"
 cd "$PROJECT_ROOT/build"
 
-# Copy configuration
-echo "Copying configuration..."
-if [ -d "$CONFIG_DIR" ]; then
-    cp -r "$CONFIG_DIR"/* .
-else
-    echo "Error: Config directory not found: $CONFIG_DIR"
-    exit 1
-fi
-
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
+
+# Copy live-build config file
+if [ -f "$CONFIG_DIR/config" ]; then
+    cp "$CONFIG_DIR/config" config
+fi
 
 # Copy package lists (live-build expects config/packages.list.chroot)
 if [ -f "$PROJECT_ROOT/config/packages.list" ]; then
@@ -74,6 +70,12 @@ fi
 if [ -d "$PROJECT_ROOT/config/packages.hook" ]; then
     mkdir -p config/hooks
     cp -r "$PROJECT_ROOT/config/packages.hook"/* config/hooks/
+fi
+
+# Copy bootloader configuration
+if [ -d "$PROJECT_ROOT/config/bootloaders" ]; then
+    mkdir -p config/bootloaders
+    cp -r "$PROJECT_ROOT/config/bootloaders"/* config/bootloaders/
 fi
 
 # Copy assets to chroot hooks directory (for the copy-assets hook)
