@@ -51,7 +51,8 @@ lb config \
     --parent-mirror-bootstrap "http://deb.debian.org/debian" \
     --parent-mirror-chroot "http://deb.debian.org/debian" \
     --parent-mirror-binary "http://deb.debian.org/debian" \
-    --bootappend-live "boot=live components quiet splash"
+    --bootappend-live "boot=live components quiet splash" \
+    --package-lists "standard xfce-desktop"
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
