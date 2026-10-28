@@ -62,7 +62,6 @@ LB_DISTRIBUTION="bookworm"
 LB_PARENT_DISTRIBUTION="bookworm"
 LB_DEBIAN_INSTALLER="none"
 LB_ARCHIVE_AREAS="main contrib non-free non-free-firmware"
-LB_TASKS="standard xfce-desktop"
 LB_BINARY_IMAGES="iso-hybrid"
 LB_ARCHITECTURE="amd64"
 LB_MIRROR_BOOTSTRAP="http://deb.debian.org/debian"
@@ -80,7 +79,6 @@ LB_MEMTEST="none"
 LB_GRUB_PASSWORD=""
 LB_PERSISTENT="none"
 LB_BOOTAPPEND_LIVE="boot=live components quiet splash"
-LB_PACKAGES_LISTS="standard xfce-desktop"
 EOF
 
 # Copy package lists
