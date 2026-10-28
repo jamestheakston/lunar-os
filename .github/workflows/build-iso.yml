@@ -55,6 +55,26 @@ jobs:
       run: |
         ./scripts/build.sh
     
+    - name: Verify desktop packages in ISO
+      run: |
+        cd build
+        if [ -f binary/live/filesystem.squashfs ]; then
+          mkdir -p /tmp/squashfs
+          unsquashfs -f -d /tmp/squashfs binary/live/filesystem.squashfs
+          if [ ! -f /tmp/squashfs/usr/sbin/lightdm ]; then
+            echo "ERROR: lightdm not found in ISO"
+            exit 1
+          fi
+          if [ ! -f /tmp/squashfs/usr/bin/startlxde ]; then
+            echo "ERROR: startlxde not found in ISO"
+            exit 1
+          fi
+          echo "Desktop packages verified in ISO"
+          rm -rf /tmp/squashfs
+        else
+          echo "Warning: filesystem.squashfs not found, skipping verification"
+        fi
+    
     - name: Get ISO filename
       id: iso-filename
       run: |

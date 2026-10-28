@@ -1,9 +1,9 @@
 #!/bin/bash
-# Hook to configure XFCE desktop environment for Lunar OS
+# Hook to configure LXDE desktop environment for Lunar OS
 
 set -e
 
-echo "Configuring XFCE desktop environment..."
+echo "Configuring LXDE desktop environment..."
 
 # Get the username
 USERNAME="lunar"
@@ -12,11 +12,6 @@ USER_HOME="/home/$USERNAME"
 # Create user directories
 mkdir -p "$USER_HOME"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
 chown -R $USERNAME:$USERNAME "$USER_HOME"
-
-# Copy XFCE configuration
-mkdir -p "$USER_HOME/.config/xfce4"
-mkdir -p "$USER_HOME/.config/xfce4/panel"
-mkdir -p "$USER_HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
 
 # Copy desktop assets (wallpaper, icons, etc.)
 if [ -d /tmp/lunar-assets/desktop ]; then
@@ -45,13 +40,8 @@ theme-name=Adwaita-dark
 icon-theme-name=Adwaita
 font-name=Sans 10
 position=50%,center
-default-session=xfce
+default-session=LXDE
 EOF
 fi
 
-# Disable XFCE screensaver by default
-if [ -f "$USER_HOME/.xscreensaver" ]; then
-    rm -f "$USER_HOME/.xscreensaver"
-fi
-
-echo "XFCE desktop configured"
+echo "LXDE desktop configured"

@@ -1,0 +1,19 @@
+#!/bin/bash
+# Hook to verify desktop packages are installed
+
+set -e
+
+echo "Verifying desktop packages are installed..."
+
+REQUIRED_PACKAGES="lxde-core lightdm openbox firefox-esr"
+
+for pkg in $REQUIRED_PACKAGES; do
+    if ! dpkg-query -W "$pkg" >/dev/null 2>&1; then
+        echo "ERROR: Required package $pkg is not installed!"
+        echo "Build will fail because desktop environment is missing."
+        exit 1
+    fi
+    echo "✓ $pkg is installed"
+done
+
+echo "All required desktop packages verified"

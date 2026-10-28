@@ -1,0 +1,43 @@
+#!/bin/bash
+# Hook to configure built-in applications for Lunar OS
+
+set -e
+
+echo "Configuring built-in applications..."
+
+# Configure Firefox for disposable session
+if [ -d /usr/lib/firefox-esr ]; then
+    cat > /etc/firefox-esr/syspref.js << 'EOF'
+// Lunar OS Firefox Configuration
+// Private browsing mode for disposable sessions
+
+pref("browser.privatebrowsing.autostart", true);
+pref("browser.privatebrowsing.force-new", true);
+pref("privacy.trackingprotection.enabled", true);
+pref("privacy.trackingprotection.pbmode.enabled", true);
+pref("browser.download.dir", "/home/lunar/Downloads");
+pref("browser.download.folderList", 2);
+pref("browser.cache.disk.enable", false);
+pref("browser.cache.memory.enable", true);
+pref("browser.cache.memory.capacity", 65536);
+pref("browser.sessionstore.resume_from_crash", false);
+pref("browser.sessionstore.max_tabs_undo", 0);
+pref("browser.sessionstore.max_windows_undo", 0);
+EOF
+fi
+
+# Configure LXTerminal defaults
+mkdir -p /etc/xdg/lxterminal
+cat > /etc/xdg/lxterminal/lxterminal.conf << 'EOF'
+[lxterminal]
+fontname=Monospace 10
+bgcolor=#000000
+fgcolor=#FFFFFF
+cursorblinks=TRUE
+cursorstyle=block
+hide scrollbar=FALSE
+hide menubar=FALSE
+hide toolbar=FALSE
+EOF
+
+echo "Applications configured"

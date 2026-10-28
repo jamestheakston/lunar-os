@@ -5,13 +5,11 @@ live-config
 live-config-systemd
 live-tools
 
-# Desktop environment (LXDE - lighter and faster to build)
+# Desktop environment (LXDE)
 lxde
 lxde-core
 lxde-icon-theme
-lxde-settings
 lxde-common
-lxde-meta
 openbox
 pcmanfm
 lxterminal
@@ -26,7 +24,6 @@ plymouth-themes
 plymouth-x11
 
 # File manager and utilities
-pcmanfm
 gvfs-backends
 gvfs-fuse
 
