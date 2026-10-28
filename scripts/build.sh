@@ -42,7 +42,12 @@ cd "$PROJECT_ROOT/build"
 
 # Copy configuration
 echo "Copying configuration..."
-cp -r "$CONFIG_DIR"/* .
+if [ -d "$CONFIG_DIR" ]; then
+    cp -r "$CONFIG_DIR"/* .
+else
+    echo "Error: Config directory not found: $CONFIG_DIR"
+    exit 1
+fi
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."

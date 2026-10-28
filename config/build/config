@@ -1,0 +1,47 @@
+# Debian Live configuration for Lunar OS
+# This is a live system that runs entirely in RAM for disposable sessions
+
+LB_DISTRIBUTION="bookworm"
+LB_PARENT_DISTRIBUTION="bookworm"
+LB_DEBIAN_INSTALLER="none"
+LB_ARCHIVE_AREAS="main contrib non-free non-free-firmware"
+
+# Use XFCE as the desktop environment (lightweight and customizable)
+LB_TASKS="standard xfce-desktop"
+
+# Build a hybrid ISO (bootable from USB or CD/DVD)
+LB_BINARY_IMAGES="iso-hybrid"
+
+# Architecture
+LB_ARCHITECTURE="amd64"
+
+# Mirror configuration
+LB_MIRROR_BOOTSTRAP="http://deb.debian.org/debian"
+LB_MIRROR_CHROOT="http://deb.debian.org/debian"
+LB_MIRROR_BINARY="http://deb.debian.org/debian"
+LB_MIRROR_CHROOT_SECURITY="http://security.debian.org/debian-security"
+LB_MIRROR_BINARY_SECURITY="http://security.debian.org/debian-security"
+
+# Enable non-free firmware for better hardware support
+LB_ARCHIVE_AREAS="main contrib non-free non-free-firmware"
+
+# Set hostname
+LB_HOSTNAME="lunar-os"
+
+# ISO volume ID
+LB_ISO_APPLICATION="Lunar OS"
+LB_ISO_PREPARER="Lunar OS Team"
+LB_ISO_PUBLISHER="Lunar OS Project"
+LB_ISO_VOLUME="LUNAR_OS"
+
+# Compression for squashfs
+LB_COMPRESSION="xz"
+
+# Memtest (optional, can be disabled)
+LB_MEMTEST="none"
+
+# Disable grub password for easier testing
+LB_GRUB_PASSWORD=""
+
+# Enable persistent storage (but we'll make it disabled by default)
+LB_PERSISTENT="none"
