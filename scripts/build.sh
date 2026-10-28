@@ -40,7 +40,7 @@ cd "$PROJECT_ROOT/build"
 
 # Initialize live-build with minimal config
 echo "Initializing live-build..."
-lb config
+lb config --distribution bookworm
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
