@@ -46,7 +46,7 @@ lb config
 echo "Applying Lunar OS customizations..."
 
 # Update config file with our settings
-cat > config << 'EOF'
+cat > config/config << 'EOF'
 LB_DISTRIBUTION="bookworm"
 LB_PARENT_DISTRIBUTION="bookworm"
 LB_DEBIAN_INSTALLER="none"
