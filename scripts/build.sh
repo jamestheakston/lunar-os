@@ -38,34 +38,37 @@ fi
 mkdir -p "$PROJECT_ROOT/build"
 cd "$PROJECT_ROOT/build"
 
-# Initialize live-build
+# Initialize live-build with minimal config
 echo "Initializing live-build..."
-lb config \
-    --distribution bookworm \
-    --architecture amd64 \
-    --binary-images iso-hybrid \
-    --archive-areas "main contrib non-free non-free-firmware" \
-    --debootstrap-options "--variant=minbase" \
-    --apt-indices false \
-    --apt-options "--yes --option Acquire::Retries=3 --option Acquire::http::Timeout=30" \
-    --mirror-bootstrap "http://deb.debian.org/debian" \
-    --mirror-chroot "http://deb.debian.org/debian" \
-    --mirror-binary "http://deb.debian.org/debian" \
-    --mirror-chroot-security "http://security.debian.org/debian-security" \
-    --mirror-binary-security "http://security.debian.org/debian-security" \
-    --hostname lunar-os \
-    --iso-application "Lunar OS" \
-    --iso-preparer "Lunar OS Team" \
-    --iso-publisher "Lunar OS Project" \
-    --iso-volume "LUNAR_OS" \
-    --compression xz \
-    --memtest none \
-    --linux-packages "linux-image-amd64" \
-    --bootappend-live "boot=live components quiet splash" \
-    --debian-installer none
+lb config
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
+
+# Update config file with our settings
+cat > config << 'EOF'
+LB_DISTRIBUTION="bookworm"
+LB_PARENT_DISTRIBUTION="bookworm"
+LB_DEBIAN_INSTALLER="none"
+LB_ARCHIVE_AREAS="main contrib non-free non-free-firmware"
+LB_TASKS="standard xfce-desktop"
+LB_BINARY_IMAGES="iso-hybrid"
+LB_ARCHITECTURE="amd64"
+LB_MIRROR_BOOTSTRAP="http://deb.debian.org/debian"
+LB_MIRROR_CHROOT="http://deb.debian.org/debian"
+LB_MIRROR_BINARY="http://deb.debian.org/debian"
+LB_MIRROR_CHROOT_SECURITY="http://security.debian.org/debian-security"
+LB_MIRROR_BINARY_SECURITY="http://security.debian.org/debian-security"
+LB_HOSTNAME="lunar-os"
+LB_ISO_APPLICATION="Lunar OS"
+LB_ISO_PREPARER="Lunar OS Team"
+LB_ISO_PUBLISHER="Lunar OS Project"
+LB_ISO_VOLUME="LUNAR_OS"
+LB_COMPRESSION="xz"
+LB_MEMTEST="none"
+LB_GRUB_PASSWORD=""
+LB_PERSISTENT="none"
+EOF
 
 # Copy package lists
 if [ -f "$PROJECT_ROOT/config/packages.list" ]; then
