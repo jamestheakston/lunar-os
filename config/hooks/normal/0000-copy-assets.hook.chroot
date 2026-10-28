@@ -5,17 +5,14 @@ set -e
 
 echo "Copying Lunar OS assets..."
 
-# Copy desktop assets (wallpaper, Python scripts, configs)
 if [ -d /tmp/lunar-assets/desktop ]; then
     echo "Copying desktop assets..."
     
-    # Copy wallpaper
     if [ -f /tmp/lunar-assets/desktop/wallpaper.png ]; then
         mkdir -p /usr/share/backgrounds/lunar-os
         cp /tmp/lunar-assets/desktop/wallpaper.png /usr/share/backgrounds/lunar-os/
     fi
     
-    # Copy Python applications
     if [ -f /tmp/lunar-assets/desktop/welcome.py ]; then
         mkdir -p /usr/share/lunar-os
         cp /tmp/lunar-assets/desktop/welcome.py /usr/share/lunar-os/
@@ -27,37 +24,18 @@ if [ -d /tmp/lunar-assets/desktop ]; then
         chmod +x /usr/share/lunar-os/shutdown-dialog.py
     fi
     
-    # Copy welcome icon
     if [ -f /tmp/lunar-assets/desktop/welcome-icon.png ]; then
         cp /tmp/lunar-assets/desktop/welcome-icon.png /usr/share/lunar-os/
     fi
-    
-    # Copy XFCE configurations
-    if [ -f /tmp/lunar-assets/desktop/xfce4-panel.xml ]; then
-        mkdir -p /etc/xdg/xfce4/panel
-        cp /tmp/lunar-assets/desktop/xfce4-panel.xml /etc/xdg/xfce4/panel/default.xml
-    fi
-    
-    if [ -f /tmp/lunar-assets/desktop/xfce4-xfconf.xml ]; then
-        mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml
-        cp /tmp/lunar-assets/desktop/xfce4-xfconf.xml /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
-    fi
-    
-    if [ -f /tmp/lunar-assets/desktop/xfce4-appearance.xml ]; then
-        mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml
-        cp /tmp/lunar-assets/desktop/xfce4-appearance.xml /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
-    fi
 fi
 
-# Copy Plymouth boot assets
 if [ -d /tmp/lunar-assets/plymouth ]; then
     echo "Copying Plymouth assets..."
     mkdir -p /usr/share/plymouth/themes/lunar-os
     cp -r /tmp/lunar-assets/plymouth/* /usr/share/plymouth/themes/lunar-os/
 fi
 
-# Copy icons
-if [ -d /tmp/lunar-assets/icons ]; then
+if [ -d /tmp/lunar-assets/icons ] && [ "$(ls -A /tmp/lunar-assets/icons 2>/dev/null)" ]; then
     echo "Copying icons..."
     mkdir -p /usr/share/icons/hicolor
     cp -r /tmp/lunar-assets/icons/* /usr/share/icons/hicolor/
