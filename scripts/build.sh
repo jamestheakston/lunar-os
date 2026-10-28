@@ -48,6 +48,7 @@ lb config \
 echo "Syncing configuration files..."
 for dir in package-lists hooks includes.chroot includes.binary bootloaders; do
     if [ -d "$PROJECT_ROOT/config/$dir" ]; then
+        mkdir -p "config/$dir"
         if [ -d "config/$dir" ]; then
             rsync -a "$PROJECT_ROOT/config/$dir/" "config/$dir/"
         else
@@ -57,13 +58,20 @@ for dir in package-lists hooks includes.chroot includes.binary bootloaders; do
 done
 
 echo "Copying assets to includes.chroot..."
-mkdir -p "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets"
-cp -r "$PROJECT_ROOT/assets/desktop"/* "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets/" 2>/dev/null || true
-cp -r "$PROJECT_ROOT/assets/boot/plymouth"/* "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets/" 2>/dev/null || true
-cp -r "$PROJECT_ROOT/assets/icons"/* "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets/" 2>/dev/null || true
+mkdir -p config/includes.chroot/tmp/lunar-assets/desktop
+mkdir -p config/includes.chroot/tmp/lunar-assets/plymouth
+mkdir -p config/includes.chroot/tmp/lunar-assets/icons
 
-if [ -d "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets" ]; then
-    rsync -a "$PROJECT_ROOT/config/includes.chroot/tmp/lunar-assets/" "config/includes.chroot/tmp/lunar-assets/"
+if [ -d "$PROJECT_ROOT/assets/desktop" ]; then
+    rsync -a "$PROJECT_ROOT/assets/desktop/" config/includes.chroot/tmp/lunar-assets/desktop/
+fi
+
+if [ -d "$PROJECT_ROOT/assets/boot/plymouth" ]; then
+    rsync -a "$PROJECT_ROOT/assets/boot/plymouth/" config/includes.chroot/tmp/lunar-assets/plymouth/
+fi
+
+if [ -d "$PROJECT_ROOT/assets/icons" ] && [ "$(ls -A "$PROJECT_ROOT/assets/icons" 2>/dev/null)" ]; then
+    rsync -a "$PROJECT_ROOT/assets/icons/" config/includes.chroot/tmp/lunar-assets/icons/
 fi
 
 echo "=== Building Lunar OS ISO ==="
