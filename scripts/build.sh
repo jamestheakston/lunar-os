@@ -40,7 +40,17 @@ cd "$PROJECT_ROOT/build"
 
 # Initialize live-build with minimal config
 echo "Initializing live-build..."
-lb config --distribution bookworm
+lb config \
+    --distribution bookworm \
+    --archive-areas "main contrib non-free non-free-firmware" \
+    --mirror-bootstrap "http://deb.debian.org/debian" \
+    --mirror-chroot "http://deb.debian.org/debian" \
+    --mirror-binary "http://deb.debian.org/debian" \
+    --mirror-chroot-security "http://security.debian.org/debian-security" \
+    --mirror-binary-security "http://security.debian.org/debian-security" \
+    --parent-mirror-bootstrap "http://deb.debian.org/debian" \
+    --parent-mirror-chroot "http://deb.debian.org/debian" \
+    --parent-mirror-binary "http://deb.debian.org/debian"
 
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
