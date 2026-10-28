@@ -6,11 +6,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-CONFIG_DIR="$PROJECT_ROOT/config/build"
 
 echo "=== Lunar OS Build Script ==="
 echo "Project root: $PROJECT_ROOT"
-echo "Config directory: $CONFIG_DIR"
 echo ""
 
 # Check if running as root (required for lb build)
@@ -40,18 +38,36 @@ fi
 mkdir -p "$PROJECT_ROOT/build"
 cd "$PROJECT_ROOT/build"
 
+# Initialize live-build
+echo "Initializing live-build..."
+lb config \
+    --distribution bookworm \
+    --architecture amd64 \
+    --binary-images iso-hybrid \
+    --archive-areas "main contrib non-free non-free-firmware" \
+    --debootstrap-options "--variant=minbase" \
+    --apt-indices false \
+    --apt-options "--yes --option Acquire::Retries=3 --option Acquire::http::Timeout=30" \
+    --mirror-bootstrap "http://deb.debian.org/debian" \
+    --mirror-chroot "http://deb.debian.org/debian" \
+    --mirror-binary "http://deb.debian.org/debian" \
+    --mirror-chroot-security "http://security.debian.org/debian-security" \
+    --mirror-binary-security "http://security.debian.org/debian-security" \
+    --hostname lunar-os \
+    --iso-application "Lunar OS" \
+    --iso-preparer "Lunar OS Team" \
+    --iso-publisher "Lunar OS Project" \
+    --iso-volume "LUNAR_OS" \
+    --compression xz \
+    --memtest none \
+    --linux-packages "linux-image-amd64" \
+    --bootappend-live "boot=live components quiet splash" \
+    --debian-installer none
+
 # Apply custom configurations
 echo "Applying Lunar OS customizations..."
 
-# Initialize live-build config first
-lb config 2>/dev/null || true
-
-# Copy live-build config file
-if [ -f "$CONFIG_DIR/config" ]; then
-    cp "$CONFIG_DIR/config" config/config
-fi
-
-# Copy package lists (live-build expects config/packages.list.chroot)
+# Copy package lists
 if [ -f "$PROJECT_ROOT/config/packages.list" ]; then
     cp "$PROJECT_ROOT/config/packages.list" config/packages.list.chroot
 fi
