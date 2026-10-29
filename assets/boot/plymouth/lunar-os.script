@@ -106,4 +106,4 @@ Plymouth.SetDisplayNormalFunction(display_normal_callback);
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
 Plymouth.SetDisplayQuestionFunction(display_question_callback);
 
-show_message("Preparing your temporary session...");
+# Don't show message by default - it will be set dynamically

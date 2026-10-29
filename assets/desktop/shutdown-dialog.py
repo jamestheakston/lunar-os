@@ -174,7 +174,13 @@ class ShutdownDialog(Gtk.Window):
         if key == "logout":
             run_logout()
         else:
-            subprocess.run(action["command"], check=False)
+            # Send message to Plymouth
+            plymouth_msg = "Shutting down..." if key == "shutdown" else "Restarting..."
+            subprocess.run(["plymouth", "message", "--text=" + plymouth_msg], check=False)
+            # Show shutdown screen before executing
+            subprocess.Popen(["/usr/share/lunar-os/shutdown-screen.py", key])
+            # Execute the shutdown/reboot command
+            GLib.timeout_add(1000, lambda: subprocess.run(action["command"], check=False))
         Gtk.main_quit()
 
     def on_key(self, _widget, event):

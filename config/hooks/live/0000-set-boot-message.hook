@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+# Set Plymouth message on boot to show "Preparing your temporary session..."
+if [ -x /bin/plymouth ]; then
+    /bin/plymouth message --text="Preparing your temporary session..." || true
+fi

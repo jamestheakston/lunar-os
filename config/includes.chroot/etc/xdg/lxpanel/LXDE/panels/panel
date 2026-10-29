@@ -30,8 +30,6 @@ Plugin {
     type=menu
     Config {
         image=/usr/share/icons/hicolor/32x32/apps/lunar-os.png
-        content=custom
-        command=/usr/share/lunar-os/lunar-start.py
         system {
         }
         separator {

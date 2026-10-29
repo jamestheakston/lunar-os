@@ -38,15 +38,3 @@ Icon=preferences-system
 Terminal=false
 Categories=Settings;DesktopSettings;
 ENTRY
-
-cat > /usr/share/applications/lunar-start.desktop << 'ENTRY'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Lunar Start
-Comment=Lunar OS Start Menu
-Exec=/usr/share/lunar-os/lunar-start.py
-Icon=lunar-os
-Terminal=false
-Categories=System;
-ENTRY
