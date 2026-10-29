@@ -82,6 +82,7 @@ wget
 curl
 sudo
 policykit-1
+polkitd
 
 # Fonts
 fonts-dejavu-core

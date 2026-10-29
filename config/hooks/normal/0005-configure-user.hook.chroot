@@ -21,6 +21,7 @@ ENTRY
 
 make_shortcut "Orbit Explorer" system-file-manager "pcmanfm %h"
 make_shortcut "Lunar Settings" preferences-system "/usr/share/lunar-os/lunar-settings.py"
+make_shortcut "Lunar Store" system-software-install "/usr/share/lunar-os/lunar-store.py"
 make_shortcut "Terminal" utilities-terminal "lxterminal"
 make_shortcut "Temporary Files" folder-temp "pcmanfm /tmp"
 make_shortcut "WireGuard VPN" network-vpn "nm-connection-editor"

@@ -38,3 +38,15 @@ Icon=preferences-system
 Terminal=false
 Categories=Settings;DesktopSettings;
 ENTRY
+
+cat > /usr/share/applications/lunar-store.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Lunar Store
+Comment=Install applications and packages
+Exec=/usr/share/lunar-os/lunar-store.py
+Icon=system-software-install
+Terminal=false
+Categories=System;PackageManager;
+ENTRY
