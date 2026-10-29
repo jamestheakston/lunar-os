@@ -5,7 +5,7 @@ import threading
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GLib, Gtk, Pango
+from gi.repository import Gdk, GLib, Gtk
 
 HOME = os.path.expanduser("~")
 

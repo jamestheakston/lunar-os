@@ -7,7 +7,7 @@ from datetime import datetime
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from gi.repository import Gdk, Gtk, Pango
 
 HOME = os.path.expanduser("~")
 GTK3_SETTINGS = os.path.join(HOME, ".config", "gtk-3.0", "settings.ini")
