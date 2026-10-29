@@ -70,7 +70,8 @@ bluez
 pulseaudio
 pulseaudio-utils
 alsa-utils
-protonvpn
+wireguard
+wireguard-tools
 
 # Utilities
 vim

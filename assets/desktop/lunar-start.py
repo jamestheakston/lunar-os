@@ -78,7 +78,7 @@ COMMON_PROGRAMS = [
     ("Web Browser", "web-browser", None),  # Will be set based on browser config
     ("Terminal", "utilities-terminal", "lxterminal"),
     ("Lunar Settings", "preferences-system", "/usr/share/lunar-os/lunar-settings.py"),
-    ("ProtonVPN", "network-vpn", "protonvpn-cli"),
+    ("WireGuard VPN", "network-vpn", "nm-connection-editor"),
     ("Calculator", "accessories-calculator", "galculator"),
     ("Text Editor", "accessories-text-editor", "mousepad"),
 ]
