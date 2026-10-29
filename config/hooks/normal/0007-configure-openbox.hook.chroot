@@ -30,5 +30,8 @@ if ! grep -q 'lunar-shutdown' "$RC"; then
     mv "$RC.new" "$RC"
 fi
 
+# Disable scroll wheel desktop switching
+sed -i 's/<context name="Desktop">/<context name="Desktop">\n    <mousebind button="Up" action="None"\/>\n    <mousebind button="Down" action="None"\/>/g' "$RC" || true
+
 grep -q '<name>Lunar</name>' "$RC"
 grep -q 'lunar-shutdown' "$RC"

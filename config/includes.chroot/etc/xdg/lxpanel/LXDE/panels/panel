@@ -27,14 +27,6 @@ Plugin {
     }
 }
 Plugin {
-    type=launchbar
-    Config {
-        Button {
-            id=/usr/share/lunar-os/lunar-start7.desktop
-        }
-    }
-}
-Plugin {
     type=menu
     Config {
         image=/usr/share/icons/hicolor/32x32/apps/lunar-os.png
