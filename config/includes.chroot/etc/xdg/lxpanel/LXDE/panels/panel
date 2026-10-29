@@ -30,6 +30,8 @@ Plugin {
     type=menu
     Config {
         image=/usr/share/icons/hicolor/32x32/apps/lunar-os.png
+        content=custom
+        command=/usr/share/lunar-os/lunar-start7.py
         system {
         }
         separator {
@@ -58,10 +60,10 @@ Plugin {
             id=lxterminal.desktop
         }
         Button {
-            id=mousepad.desktop
+            id=lunar-store.desktop
         }
         Button {
-            id=galculator.desktop
+            id=lunar-metadata.desktop
         }
         Button {
             id=lunar-settings.desktop
