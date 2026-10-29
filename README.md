@@ -1,311 +1,97 @@
 # Lunar OS
 
-A completely disposable operating system designed for temporary sessions. Every time you boot Lunar OS, you enter a fresh desktop session. Files, settings, downloads, and other user-created data are stored in temporary storage and discarded when you shut down.
+A disposable desktop operating system built on Debian 12 (bookworm) Live. Every boot starts a fresh session. Files, settings and downloads live in RAM and are discarded when the computer shuts down or restarts.
+
+**Status:** all source, configuration and build scripts are in place. The ISO has not been built or booted by the author yet. See `docs/STATUS.md` for exactly what has and has not been tested.
 
 ## Features
 
-- **Disposable Sessions**: All session data is stored in RAM and discarded on shutdown
-- **Lunar Aesthetic**: Modern, minimalist design with a moon-inspired color scheme
-- **Lightweight**: Based on Debian Linux with XFCE desktop environment
-- **Privacy-Focused**: Private browsing mode by default, no data persistence
-- **Bootable ISO**: Can be run from USB drive or in virtual machines
-- **No Installation Required**: Runs entirely from the ISO without installation
+- Debian Live base with a read-only system image and a RAM-backed writable layer
+- Custom Plymouth boot screen: moon logo, LUNAR OS title, animated indicator and live boot messages
+- LXDE desktop with Openbox, a dark Lunar theme, a violet accent and optional light mode
+- Bottom panel with launcher menu, quick-launch buttons, taskbar, system tray (network, sound, battery, session status), date and clock, and a Shut Down button
+- Window dragging, resizing, minimising, maximising and closing, with compositor shadows and rounded corners
+- Right-click desktop menu and desktop shortcuts
+- Notifications (dunst)
+- Welcome window on every boot with a "Start session" button
+- Custom shutdown dialog: Shut Down and Discard Session, Restart and Start Fresh, Log Out, Cancel
+- Lunar Settings: dark/light mode, wallpaper, and shortcuts to display, sound, network, keyboard, mouse and startup tools
+- Applications: PCManFM (files), Mousepad (text editor), LXTerminal, Firefox ESR, Galculator, GPicView, LXTask (system monitor)
 
-## System Requirements
+## Keyboard shortcuts
 
-### Minimum Requirements
-- **CPU**: x86_64 (Intel/AMD 64-bit)
-- **RAM**: 2 GB (4 GB recommended for smooth operation)
-- **Storage**: 4 GB USB drive (for live boot) or virtual disk space
-- **Graphics**: VESA-compatible or better
+| Keys | Action |
+|---|---|
+| Super+T or Ctrl+Alt+T | Terminal |
+| Super+B | Web browser |
+| Super+E | File manager (LXDE default) |
+| Super+I | Lunar Settings |
+| Super+C | Calculator |
+| Ctrl+Shift+Esc | System monitor |
+| Super+Q | Shut down dialog |
+| Super+D | Show desktop |
+| Super+Up / Super+Down | Maximise / minimise |
+| Alt+F4 | Close window |
 
-### Recommended Requirements
-- **CPU**: Dual-core 2.0 GHz or better
-- **RAM**: 4 GB or more
-- **Storage**: 8 GB USB drive
-- **Graphics**: Hardware acceleration capable
+## System requirements
 
-## Quick Start
-
-For a quick start guide, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+- Build machine: Debian 12 or a Debian container, root access, 15 GB free disk, internet connection
+- Run: 64-bit x86 computer or VM, BIOS or UEFI (Secure Boot not supported), 2 GB RAM minimum and 4 GB recommended
 
 ## Building the ISO
 
-### Option 1: GitHub Actions (Recommended)
+### GitHub Actions
 
-The easiest way to build Lunar OS is using GitHub Actions:
+Push to `main` or run the **Build Lunar OS ISO** workflow manually. The workflow builds the ISO, checks that the desktop is inside the image and uploads the ISO and checksum as artifacts.
 
-1. Push this repository to GitHub
-2. Go to the "Actions" tab
-3. Click "Build Lunar OS ISO"
-4. Click "Run workflow"
-5. Download the ISO from the artifacts
-
-See [`.github/README.md`](.github/README.md) for details.
-
-### Option 2: Local Build
-
-For a local build, see [docs/BUILDING.md](docs/BUILDING.md).
-
-## Prerequisites for Local Build
+### Local build
 
 ```bash
-sudo apt-get update
-sudo apt-get install live-build debootstrap syslinux-utils grub-pc-bin grub-common xorriso mtools
+sudo ./scripts/install-deps.sh
+./scripts/generate-assets.sh
+sudo ./scripts/build.sh
 ```
 
-For asset generation, you also need:
+The ISO is written to `build/live-image-amd64.hybrid.iso` and the log to `lunar-build.log`.
+
+## Testing
+
 ```bash
-sudo apt-get install python3 python3-pip
-pip3 install Pillow --user
+qemu-system-x86_64 -m 4096 -enable-kvm -cdrom build/live-image-amd64.hybrid.iso -boot d
 ```
 
-For detailed local build instructions, see [docs/BUILDING.md](docs/BUILDING.md).
+In VirtualBox create a Debian 64-bit VM with at least 2 GB RAM, no virtual disk, and attach the ISO. See `docs/TESTING.md` for the full checklist.
 
-## Testing Lunar OS
+## Writing to a USB drive
 
-### Using QEMU (Linux/Unix)
-
-Install QEMU:
-```bash
-sudo apt-get install qemu-kvm qemu-utils
-```
-
-Test the ISO:
-```bash
-qemu-system-x86_64 -m 2048 -cdrom build/*.iso -boot d
-```
-
-For better performance with KVM:
-```bash
-qemu-system-x86_64 -enable-kvm -m 2048 -cdrom build/*.iso -boot d
-```
-
-### Using VirtualBox
-
-1. Create a new VM
-2. Allocate at least 2 GB RAM
-3. Set the CD/DVD drive to point to the Lunar OS ISO
-4. Start the VM
-
-### Using VMware
-
-1. Create a new VM
-2. Select "Linux" as the guest OS
-3. Allocate at least 2 GB RAM
-4. Mount the ISO as a virtual CD/DVD
-5. Start the VM
-
-## Installing to USB Drive
-
-### On Linux
-
-Identify your USB device (e.g., /dev/sdX):
 ```bash
 lsblk
+sudo dd if=build/live-image-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-Write the ISO to the USB drive (WARNING: This will erase all data on the USB drive):
-```bash
-sudo dd if=build/*.iso of=/dev/sdX bs=4M status=progress conv=fsync
-```
+Replace `/dev/sdX` with the USB device. This erases it. On Windows use Rufus in DD mode or balenaEtcher.
 
-Sync and eject:
-```bash
-sync
-sudo eject /dev/sdX
-```
+## How the disposable session works
 
-### On macOS
+- live-boot mounts the compressed system image read-only and layers a RAM filesystem (overlayfs on tmpfs) on top. Every write goes to RAM.
+- The ISO and any disk in the computer are never written by normal use.
+- Power loss or a crash leaves the ISO unchanged, because nothing was ever committed to it.
+- Boot hardening: swap and hibernation targets and GPT swap auto-detection are disabled, the journal is kept in memory and core dumps are disabled.
+- The session status icon in the tray shows RAM and session storage use and warns when memory runs low.
+- **Shut down and restart** discard the session. **Log out** keeps session files in RAM until the next shutdown or restart, and the login screen signs you straight back in.
 
-Identify your USB device (e.g., /dev/disk2):
-```bash
-diskutil list
-```
+## Limitations
 
-Unmount the disk:
-```bash
-diskutil unmountDisk /dev/disk2
-```
+- Session storage is limited by RAM. A system with 2 GB can hold little beyond the desktop and a browser.
+- Disposable storage reduces persistence. It cannot remove data you copied to external drives or cloud services, data sent over a network, data retained by hardware, or RAM contents that linger briefly after power-off. It is not forensic-grade secure erasure.
+- Theme changes in Lunar Settings apply to windows opened afterwards.
+- No installer and no persistence by design.
+- Non-free firmware is included for hardware support.
 
-Write the ISO (replace N with the correct disk number):
-```bash
-sudo dd if=build/*.iso of=/dev/diskN bs=4m
-```
+## Project layout
 
-### On Windows
-
-Use a tool like [Rufus](https://rufus.ie/) or [Etcher](https://www.balena.io/etcher/) to write the ISO to a USB drive.
-
-## Using Lunar OS
-
-### First Boot
-
-1. Boot from the USB drive or ISO
-2. Wait for the Lunar OS boot screen with the loading animation
-3. The desktop will load automatically
-4. A "Welcome to Lunar OS" window will appear
-5. Click "Start Session" to begin using the system
-
-### Desktop Environment
-
-Lunar OS uses the XFCE desktop environment with custom theming:
-
-- **Taskbar**: Located at the bottom with application launcher, task list, system tray, and clock
-- **Application Launcher**: Click the moon icon or press the Super key
-- **File Manager**: Thunar with custom settings
-- **Terminal**: XFCE Terminal with Monospace font
-- **Web Browser**: Firefox ESR in private browsing mode
-
-### Built-in Applications
-
-- **File Manager**: Thunar
-- **Text Editor**: Mousepad
-- **Terminal**: XFCE Terminal
-- **Web Browser**: Firefox ESR (private mode)
-- **Calculator**: Galculator
-- **Image Viewer**: Ristretto
-- **System Monitor**: GNOME System Monitor
-- **Settings**: XFCE Settings Manager
-
-### Shutting Down
-
-To shut down Lunar OS:
-
-1. Click the power icon in the system tray or use the application launcher
-2. Select "Shut Down and Discard Session"
-3. Confirm the shutdown
-4. All session data will be discarded
-
-To restart:
-1. Select "Restart and Start Fresh"
-2. Confirm the restart
-3. The system will reboot with a clean session
-
-## Project Structure
-
-```
-lunar-os/
-├── assets/                  # Visual assets
-│   ├── boot/               # Boot screen assets (Plymouth)
-│   ├── desktop/            # Desktop assets (wallpaper, Python apps)
-│   └── icons/              # Application icons
-├── config/                  # Debian Live configuration
-│   ├── build/              # Live-build config files
-│   ├── includes.chroot/    # Files to add to the live system
-│   ├── includes.binary/    # Files to add to the ISO
-│   ├── packages.hook/      # Build hooks
-│   └── bootloaders/       # Bootloader configuration
-├── scripts/                 # Build and utility scripts
-│   ├── build.sh           # Main ISO build script
-│   └── generate-assets.sh  # Asset generation script
-└── docs/                   # Documentation
-```
-
-## Technical Details
-
-### Disposable Session Architecture
-
-Lunar OS uses overlayfs with tmpfs for disposable storage:
-
-- **Base System**: Read-only squashfs filesystem from the ISO
-- **Writable Layer**: tmpfs (RAM-based overlay)
-- **Union**: overlayfs combines the two layers
-- **Result**: All writes go to RAM and are discarded on shutdown
-
-This ensures:
-- No data persistence after shutdown
-- Fast read performance (from ISO)
-- Fast write performance (to RAM)
-- No wear on USB drives
-- No accidental data persistence
-
-### Boot Process
-
-1. **GRUB**: Loads the kernel and initramfs
-2. **Plymouth**: Displays the Lunar OS boot screen
-3. **live-boot**: Sets up the overlayfs with tmpfs
-4. **systemd**: Initializes services
-5. **LightDM**: Auto-login to the XFCE desktop
-6. **Welcome Window**: Displays automatically on first boot
-
-### Custom Components
-
-- **Plymouth Theme**: Custom boot screen with moon logo and animation
-- **Welcome Window**: GTK3 Python application introducing the disposable concept
-- **Shutdown Dialog**: Custom GTK3 Python application with session discard confirmation
-- **Desktop Configuration**: Custom XFCE settings for Lunar OS branding
-- **Application Settings**: Firefox private mode, Thunar defaults, etc.
-
-## Known Limitations
-
-- **RAM Requirements**: The entire writable layer is stored in RAM. With 2 GB RAM, you may experience issues with large files or many applications.
-- **No Persistence**: Session data cannot be saved (by design). To save files, copy them to external media.
-- **Hardware Support**: Limited to hardware supported by Debian 12 and the included firmware packages.
-- **Network Configuration**: Requires manual setup for some network hardware.
-- **Battery/Power Management**: Basic power management is included, but advanced features may be limited.
-
-## Security Considerations
-
-Lunar OS is designed for privacy and disposability, but:
-
-- **Not Forensically Secure**: Data may persist in hardware caches, network logs, or other systems.
-- **Network Privacy**: Your ISP and network can still see your network traffic. Use a VPN if needed.
-- **External Media**: Files copied to external drives will persist.
-- **Virtual Machines**: The hypervisor may have access to your session data.
-
-## Troubleshooting
-
-### Build Fails
-
-- Ensure you're running on Debian 12 or compatible
-- Check that you have root permissions
-- Verify all dependencies are installed
-- Check internet connectivity (build downloads packages)
-
-### Boot Fails
-
-- Try the "Safe Graphics" boot option
-- Increase RAM allocation in VM settings
-- Check that your hardware meets minimum requirements
-- Try writing the ISO to a different USB drive
-
-### Desktop Doesn't Load
-
-- Try the "Verbose" boot option to see errors
-- Ensure you have at least 2 GB RAM allocated
-- Check for graphics driver issues (try Safe Graphics)
-
-### Welcome Window Doesn't Appear
-
-- Check that Python 3 and GTK3 are installed
-- Look for errors in `/var/log/Xorg.0.log`
-- Manually run: `/usr/share/lunar-os/welcome.py`
-
-## Contributing
-
-Lunar OS is open source. Contributions are welcome in the form of:
-
-- Bug reports
-- Feature requests
-- Code improvements
-- Documentation updates
-- Translation support
+See `docs/PROJECT_STRUCTURE.md`. Architecture notes are in `docs/ARCHITECTURE.md`.
 
 ## License
 
-Lunar OS is based on Debian Linux and uses open source software. The Lunar OS custom components are released under the MIT License.
-
-## Support
-
-For issues, questions, or contributions:
-- Report bugs via the project issue tracker
-- Check the documentation in the `docs/` directory
-- Review the configuration files in `config/`
-
-## Acknowledgments
-
-- Debian Project for the excellent base system
-- XFCE for the lightweight desktop environment
-- Debian Live team for the live system tools
-- All contributors to the open source projects used
+See `LICENSE`.

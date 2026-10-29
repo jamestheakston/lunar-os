@@ -140,56 +140,15 @@ sha256sum build/*.iso > build/sha256sum.txt
 
 ### Modifying the Configuration
 
-The main configuration is in `config/build/config`:
-
-```bash
-# Distribution
-LB_DISTRIBUTION="bookworm"
-
-# Desktop environment
-LB_TASKS="standard xfce-desktop"
-
-# Architecture
-LB_ARCHITECTURE="amd64"
-
-# ISO metadata
-LB_ISO_APPLICATION="Lunar OS"
-LB_ISO_VOLUME="LUNAR_OS"
-```
+Image options are the `lb config` flags in `scripts/build.sh`. Package lists, hooks and included files live under `config/`.
 
 ### Adding Packages
 
-Edit `config/packages.list` to add or remove packages:
-
-```
-# Core system
-linux-image-amd64
-live-boot
-
-# Desktop
-xfce4
-xfce4-goodies
-
-# Applications
-firefox-esr
-thunar
-```
-
-After changing packages, rebuild the ISO.
+Edit `config/package-lists/lunar.list.chroot`, one package per line, then rebuild.
 
 ### Customizing Hooks
 
-Build hooks are in `config/packages.hook/`:
-
-- `0000-copy-assets.hook.chroot` - Copies visual assets
-- `0001-install-plymouth-theme.hook.chroot` - Configures boot screen
-- `0002-configure-xfce.hook.chroot` - Configures XFCE desktop
-- `0003-install-welcome-app.hook.chroot` - Installs welcome window
-- `0004-configure-shutdown.hook.chroot` - Configures shutdown dialog
-- `0005-configure-user.hook.chroot` - Configures user home directory
-- `0006-configure-applications.hook.chroot` - Configures applications
-
-Hooks are executed in numerical order during the build.
+Hooks are in `config/hooks/normal/` and run in numeric order. See `docs/PROJECT_STRUCTURE.md` for what each one does. Hook `0900-verify-desktop` fails the build when required packages or Lunar files are missing.
 
 ## Troubleshooting Build Issues
 
@@ -261,27 +220,11 @@ LB_ARCHITECTURE="i386"  # For 32-bit systems
 
 ### Building with Different Desktop Environments
 
-Edit `config/packages.list` and `config/build/config`:
-
-```bash
-# For GNOME
-LB_TASKS="standard gnome-desktop"
-
-# For KDE
-LB_TASKS="standard kde-desktop"
-```
-
-You'll also need to update the desktop configuration hooks.
+Lunar OS targets LXDE. Another desktop needs different packages in `config/package-lists/lunar.list.chroot` and rewritten hooks `0002`, `0005`, `0006` and `0007`, the panel config and the verification hook.
 
 ### Building with Additional Software
 
-Add packages to `config/packages.list`:
-
-```
-vlc              # Media player
-gimp             # Image editor
-libreoffice      # Office suite
-```
+Add one package name per line to `config/package-lists/lunar.list.chroot`, for example `vlc`, `gimp` or `libreoffice`. Everything installed this way also uses RAM at run time.
 
 ## Reproducible Builds
 
@@ -340,5 +283,5 @@ After building:
 ## Additional Resources
 
 - [Debian Live Manual](https://live-team.pages.debian.net/live-manual/)
-- [XFCE Documentation](https://docs.xfce.org/)
+- [LXDE](https://www.lxde.org/)
 - [Plymouth Themes](https://www.freedesktop.org/software/plymouth/doc/)

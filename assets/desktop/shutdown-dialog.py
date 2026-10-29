@@ -1,201 +1,203 @@
 #!/usr/bin/env python3
-"""
-Lunar OS Shutdown Dialog
-Custom shutdown dialog with session discard confirmation
-"""
+import os
+import subprocess
+import sys
 
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib
-import sys
-import subprocess
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, Gtk
 
-class LunarShutdownDialog(Gtk.Dialog):
-    def __init__(self, restart=False):
-        self.restart = restart
-        title = "Restart and Start Fresh" if restart else "Shut Down and Discard Session"
-        
-        super().__init__(
-            title=title,
-            flags=0
-        )
-        
-        self.set_default_size(450, 300)
-        self.set_border_width(20)
-        self.set_position(Gtk.WindowPosition.CENTER)
+ACTIONS = {
+    "shutdown": {
+        "label": "Shut Down and Discard Session",
+        "confirm": "Shut Down Now",
+        "message": (
+            "The computer will power off. Every file, setting and change from "
+            "this session is discarded when it powers off, and the next boot "
+            "starts fresh."
+        ),
+        "command": ["systemctl", "poweroff"],
+        "destructive": True,
+    },
+    "restart": {
+        "label": "Restart and Start Fresh",
+        "confirm": "Restart Now",
+        "message": (
+            "The computer will restart into a new, clean session. Every file, "
+            "setting and change from this session is discarded during the restart."
+        ),
+        "command": ["systemctl", "reboot"],
+        "destructive": True,
+    },
+    "logout": {
+        "label": "Log Out",
+        "confirm": "Log Out Now",
+        "message": (
+            "Your applications close and you return to the login screen, which "
+            "signs you straight back in. Session files are kept in memory until "
+            "you shut down or restart."
+        ),
+        "command": None,
+        "destructive": False,
+    },
+}
+
+CSS = b"""
+window.lunar-dialog { background-color: #1a1a2e; }
+window.lunar-dialog label { color: #e8e8f0; }
+window.lunar-dialog .heading { font-size: 20px; font-weight: bold; color: #ffffff; }
+window.lunar-dialog .note { font-size: 12px; color: #9a9ab8; }
+window.lunar-dialog button {
+    background-image: none;
+    background-color: #2a2a48;
+    color: #ffffff;
+    border: 1px solid #3a3a5c;
+    border-radius: 10px;
+    padding: 10px 18px;
+}
+window.lunar-dialog button:hover { background-color: #34345a; }
+window.lunar-dialog button.primary { background-color: #6c5ce7; border-color: #6c5ce7; }
+window.lunar-dialog button.primary:hover { background-color: #7d6ff0; }
+window.lunar-dialog button.danger { background-color: #c0392b; border-color: #c0392b; }
+window.lunar-dialog button.danger:hover { background-color: #d44637; }
+"""
+
+DISCLAIMER = (
+    "Disposable storage reduces persistence. It cannot remove data you copied "
+    "to external drives or sent over the network."
+)
+
+
+def log(message):
+    subprocess.run(["logger", "-t", "lunar-os", message], check=False)
+
+
+def run_logout():
+    session = os.environ.get("XDG_SESSION_ID")
+    if session:
+        return subprocess.run(["loginctl", "terminate-session", session], check=False)
+    return subprocess.run(["loginctl", "terminate-user", str(os.getuid())], check=False)
+
+
+class ShutdownDialog(Gtk.Window):
+    def __init__(self, preselect=None):
+        super().__init__(title="Lunar OS")
+        self.set_default_size(460, -1)
         self.set_resizable(False)
-        self.set_modal(True)
-        
-        # Setup UI
-        self.setup_ui()
-        
-        # Apply styling
-        self.apply_styling()
-        
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_keep_above(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.set_icon_name("lunar-os")
+        self.get_style_context().add_class("lunar-dialog")
+        self.connect("destroy", Gtk.main_quit)
+        self.connect("key-press-event", self.on_key)
+
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(150)
+        self.add(self.stack)
+
+        self.stack.add_named(self.build_choose(), "choose")
+        self.confirm_box = None
         self.show_all()
 
-    def setup_ui(self):
-        """Setup the shutdown dialog UI"""
-        # Add main box
-        box = self.get_content_area()
-        box.set_spacing(20)
-        
-        # Icon/emoji
-        icon_label = Gtk.Label()
-        icon_label.set_markup('<span size="xx-large">🌙</span>')
-        box.pack_start(icon_label, False, False, 0)
-        
-        # Title
-        title_text = "Restart and Start Fresh" if self.restart else "Shut Down and Discard Session"
-        title_label = Gtk.Label()
-        title_label.set_markup(f'<span size="large" weight="bold">{title_text}</span>')
-        box.pack_start(title_label, False, False, 0)
-        
-        # Warning message
-        if self.restart:
-            message = (
-                "Your computer will restart and all session data will be discarded. "
-                "When it boots again, you'll start with a fresh, clean session."
-            )
-        else:
-            message = (
-                "Your computer will shut down and all session data will be discarded. "
-                "Files, settings, and changes made in this session will be lost."
-            )
-        
-        message_label = Gtk.Label()
-        message_label.set_markup(f'<span size="small">{message}</span>')
-        message_label.set_line_wrap(True)
-        message_label.set_max_width_chars(40)
-        box.pack_start(message_label, False, False, 0)
-        
-        # Info box
-        info_frame = Gtk.Frame(label="Session Data to be Discarded")
-        info_frame.set_margin_top(10)
-        box.pack_start(info_frame, False, False, 0)
-        
-        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        info_frame.add(info_box)
-        
-        discard_items = [
-            "• Files in your home directory",
-            "• Desktop files and folders",
-            "• Downloads",
-            "• Application settings",
-            "• Browser history and cookies",
-            "• Any installed session applications"
-        ]
-        
-        for item in discard_items:
-            item_label = Gtk.Label()
-            item_label.set_markup(f'<span size="small">{item}</span>')
-            item_label.set_halign(Gtk.Align.START)
-            item_label.set_margin_left(10)
-            item_label.set_margin_right(10)
-            info_box.pack_start(item_label, False, False, 0)
-        
-        # Spacer
-        box.pack_start(Gtk.Label(), True, True, 0)
-        
-        # Action buttons
-        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        button_box.set_margin_top(20)
-        box.pack_start(button_box, False, False, 0)
-        
-        # Cancel button
-        cancel_button = Gtk.Button(label="Cancel")
-        cancel_button.connect("clicked", self.on_cancel)
-        button_box.pack_start(cancel_button, True, True, 0)
-        
-        # Confirm button
-        confirm_text = "Restart Now" if self.restart else "Shut Down Now"
-        confirm_button = Gtk.Button(label=confirm_text)
-        confirm_button.get_style_context().add_class("destructive-action")
-        confirm_button.connect("clicked", self.on_confirm)
-        button_box.pack_start(confirm_button, True, True, 0)
+        if preselect in ACTIONS:
+            self.show_confirm(preselect)
 
-    def apply_styling(self):
-        """Apply custom styling to match Lunar OS theme"""
-        css = b"""
-        dialog {
-            background-color: #1a1a2e;
-        }
-        
-        label {
-            color: #ffffff;
-            font-family: Sans;
-        }
-        
-        button {
-            background-color: #6c5ce7;
-            color: #ffffff;
-            border-radius: 8px;
-            padding: 10px 20px;
-        }
-        
-        button:hover {
-            background-color: #5b4cdb;
-        }
-        
-        button.destructive-action {
-            background-color: #e74c3c;
-        }
-        
-        button.destructive-action:hover {
-            background-color: #c0392b;
-        }
-        
-        frame {
-            color: #6c5ce7;
-        }
-        """
-        
-        style_provider = Gtk.CssProvider()
-        style_provider.load_from_data(css)
-        
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    def heading(self, text):
+        label = Gtk.Label(label=text)
+        label.get_style_context().add_class("heading")
+        return label
+
+    def note(self, text):
+        label = Gtk.Label(label=text)
+        label.get_style_context().add_class("note")
+        label.set_line_wrap(True)
+        label.set_justify(Gtk.Justification.CENTER)
+        label.set_max_width_chars(56)
+        return label
+
+    def build_choose(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(28)
+        box.pack_start(self.heading("You are in a temporary session"), False, False, 0)
+        box.pack_start(
+            self.note("Shutting down or restarting discards everything created in this session."),
+            False, False, 6,
         )
+        for key in ("shutdown", "restart", "logout"):
+            button = Gtk.Button(label=ACTIONS[key]["label"])
+            if key == "shutdown":
+                button.get_style_context().add_class("primary")
+            button.connect("clicked", lambda _b, k=key: self.show_confirm(k))
+            box.pack_start(button, False, False, 0)
+        cancel = Gtk.Button(label="Cancel")
+        cancel.connect("clicked", lambda _b: self.destroy())
+        box.pack_start(cancel, False, False, 6)
+        box.pack_start(self.note(DISCLAIMER), False, False, 0)
+        return box
 
-    def on_cancel(self, button):
-        """Handle Cancel button click"""
-        self.destroy()
+    def show_confirm(self, key):
+        action = ACTIONS[key]
+        if self.confirm_box is not None:
+            self.stack.remove(self.confirm_box)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_border_width(28)
+        box.pack_start(self.heading(action["label"]), False, False, 0)
+        message = Gtk.Label(label=action["message"])
+        message.set_line_wrap(True)
+        message.set_justify(Gtk.Justification.CENTER)
+        message.set_max_width_chars(50)
+        box.pack_start(message, False, False, 8)
+
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.set_homogeneous(True)
+        cancel = Gtk.Button(label="Cancel")
+        cancel.connect("clicked", lambda _b: self.destroy())
+        confirm = Gtk.Button(label=action["confirm"])
+        confirm.get_style_context().add_class("danger" if action["destructive"] else "primary")
+        confirm.connect("clicked", lambda _b: self.execute(key))
+        row.pack_start(cancel, True, True, 0)
+        row.pack_start(confirm, True, True, 0)
+        box.pack_start(row, False, False, 6)
+        box.pack_start(self.note(DISCLAIMER), False, False, 0)
+
+        self.confirm_box = box
+        self.stack.add_named(box, "confirm")
+        box.show_all()
+        self.stack.set_visible_child_name("confirm")
+        cancel.grab_focus()
+
+    def execute(self, key):
+        log("session action: " + key)
+        self.hide()
+        action = ACTIONS[key]
+        if key == "logout":
+            run_logout()
+        else:
+            subprocess.run(action["command"], check=False)
         Gtk.main_quit()
 
-    def on_confirm(self, button):
-        """Handle confirm button click - execute shutdown/restart"""
-        self.destroy()
-        
-        try:
-            if self.restart:
-                # Restart the system
-                subprocess.run(["systemctl", "reboot"], check=False)
-            else:
-                # Shutdown the system
-                subprocess.run(["systemctl", "poweroff"], check=False)
-        except Exception as e:
-            print(f"Error executing shutdown/restart: {e}")
-            # Fallback to traditional commands
-            if self.restart:
-                subprocess.run(["reboot"], check=False)
-            else:
-                subprocess.run(["poweroff"], check=False)
-        
-        Gtk.main_quit()
+    def on_key(self, _widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.destroy()
+            return True
+        return False
+
 
 def main():
-    """Main entry point"""
-    # Check if --restart flag is passed
-    restart = "--restart" in sys.argv
-    
-    dialog = LunarShutdownDialog(restart)
-    response = dialog.run()
-    
-    if response == Gtk.ResponseType.DELETE_EVENT:
-        # Window was closed without button click
-        Gtk.main_quit()
+    preselect = None
+    for arg in sys.argv[1:]:
+        if arg in ("--shutdown", "--restart", "--logout"):
+            preselect = arg[2:]
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(
+        Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
+    ShutdownDialog(preselect)
+    Gtk.main()
+
 
 if __name__ == "__main__":
     main()

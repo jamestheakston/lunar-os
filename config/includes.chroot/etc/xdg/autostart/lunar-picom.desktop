@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Lunar Compositor
+Exec=picom --config /etc/xdg/picom.conf
+NoDisplay=true
+OnlyShowIn=LXDE;

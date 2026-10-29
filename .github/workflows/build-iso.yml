@@ -10,21 +10,24 @@ on:
       create_release:
         description: 'Create a GitHub Release with the ISO'
         required: false
-        default: 'false'
+        default: false
         type: boolean
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours
+    timeout-minutes: 360
     container:
       image: debian:bookworm
       options: --privileged
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Install dependencies
       run: |
         apt-get update
@@ -37,95 +40,61 @@ jobs:
           xorriso \
           mtools \
           squashfs-tools \
+          rsync \
+          librsvg2-bin \
           wget \
           curl \
           git \
           python3 \
-          python3-pip
-    
-    - name: Install Python dependencies
-      run: |
-        pip3 install Pillow --break-system-packages
-    
+          python3-pil
+
     - name: Generate assets
-      run: |
-        ./scripts/generate-assets.sh
-    
+      run: bash scripts/generate-assets.sh
+
     - name: Build ISO
+      run: bash scripts/build.sh
+
+    - name: Verify desktop in image
       run: |
-        ./scripts/build.sh
-    
-    - name: Verify desktop packages in ISO
-      run: |
-        cd build
-        if [ -f binary/live/filesystem.squashfs ]; then
-          mkdir -p /tmp/squashfs
-          unsquashfs -f -d /tmp/squashfs binary/live/filesystem.squashfs
-          if [ ! -f /tmp/squashfs/usr/sbin/lightdm ]; then
-            echo "ERROR: lightdm not found in ISO"
+        unsquashfs -l build/binary/live/filesystem.squashfs > /tmp/squashfs-files.txt
+        for f in usr/sbin/lightdm usr/bin/startlxde usr/bin/openbox usr/bin/firefox-esr usr/bin/dunst usr/bin/picom usr/bin/galculator usr/share/lunar-os/welcome.py usr/share/lunar-os/shutdown-dialog.py usr/share/lunar-os/lunar-settings.py usr/share/plymouth/themes/lunar-os/lunar-os.script; do
+          if ! grep -q "squashfs-root/$f\$" /tmp/squashfs-files.txt; then
+            echo "Missing $f in filesystem.squashfs"
             exit 1
           fi
-          if [ ! -f /tmp/squashfs/usr/bin/startlxde ]; then
-            echo "ERROR: startlxde not found in ISO"
-            exit 1
-          fi
-          echo "Desktop packages verified in ISO"
-          rm -rf /tmp/squashfs
-        else
-          echo "Warning: filesystem.squashfs not found, skipping verification"
-        fi
-    
-    - name: Get ISO filename
-      id: iso-filename
-      run: |
-        cd build
-        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
-        if [ -z "$ISO_FILE" ]; then
-          echo "No ISO file found!"
-          exit 1
-        fi
-        echo "filename=$ISO_FILE" >> $GITHUB_OUTPUT
-        echo "ISO file: $ISO_FILE"
-    
+        done
+
     - name: Generate checksum
+      id: iso
       run: |
         cd build
-        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
+        ISO_FILE=$(ls *.iso | head -n 1)
         sha256sum "$ISO_FILE" > "$ISO_FILE.sha256"
-        echo "Checksum generated:"
         cat "$ISO_FILE.sha256"
-    
+        ls -lh "$ISO_FILE"
+        echo "filename=$ISO_FILE" >> "$GITHUB_OUTPUT"
+
     - name: Upload ISO as artifact
       uses: actions/upload-artifact@v4
       with:
         name: lunar-os-iso
         path: build/*.iso
         retention-days: 7
-    
+
     - name: Upload checksum as artifact
       uses: actions/upload-artifact@v4
       with:
         name: lunar-os-checksum
         path: build/*.sha256
         retention-days: 7
-    
-    - name: Get ISO size
-      run: |
-        cd build
-        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
-        ls -lh "$ISO_FILE"
-    
-    - name: Create Release (if triggered)
-      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        cd build
-        ISO_FILE=$(ls *.iso 2>/dev/null | head -n 1)
-        VERSION=$(date +%Y%m%d-%H%M%S)
-        
-        gh release create "v$VERSION" \
-          "$ISO_FILE" \
-          "$ISO_FILE.sha256" \
-          --title "Lunar OS $VERSION" \
-          --notes "Automated build of Lunar OS ISO. SHA256 checksum included."
+
+    - name: Create Release
+      if: github.event_name == 'workflow_dispatch' && inputs.create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Lunar OS ${{ github.run_number }}
+        body: Automated build of Lunar OS ISO. SHA256 checksum included.
+        files: |
+          build/${{ steps.iso.outputs.filename }}
+          build/${{ steps.iso.outputs.filename }}.sha256

@@ -1,44 +1,44 @@
 #!/bin/bash
-# Hook to copy Lunar OS assets into the chroot
-
 set -e
 
-echo "Copying Lunar OS assets..."
+ASSETS=/tmp/lunar-assets
+APP_DIR=/usr/share/lunar-os
+WALLPAPER_DIR=/usr/share/backgrounds/lunar-os
+THEME_DIR=/usr/share/plymouth/themes/lunar-os
+ICON_DIR=/usr/share/icons/hicolor
 
-if [ -d /tmp/lunar-assets/desktop ]; then
-    echo "Copying desktop assets..."
-    
-    if [ -f /tmp/lunar-assets/desktop/wallpaper.png ]; then
-        mkdir -p /usr/share/backgrounds/lunar-os
-        cp /tmp/lunar-assets/desktop/wallpaper.png /usr/share/backgrounds/lunar-os/
-    fi
-    
-    if [ -f /tmp/lunar-assets/desktop/welcome.py ]; then
-        mkdir -p /usr/share/lunar-os
-        cp /tmp/lunar-assets/desktop/welcome.py /usr/share/lunar-os/
-        chmod +x /usr/share/lunar-os/welcome.py
-    fi
-    
-    if [ -f /tmp/lunar-assets/desktop/shutdown-dialog.py ]; then
-        cp /tmp/lunar-assets/desktop/shutdown-dialog.py /usr/share/lunar-os/
-        chmod +x /usr/share/lunar-os/shutdown-dialog.py
-    fi
-    
-    if [ -f /tmp/lunar-assets/desktop/welcome-icon.png ]; then
-        cp /tmp/lunar-assets/desktop/welcome-icon.png /usr/share/lunar-os/
-    fi
+mkdir -p "$APP_DIR" "$WALLPAPER_DIR"
+
+if [ -f "$ASSETS/desktop/wallpaper.png" ]; then
+    install -m 644 "$ASSETS/desktop/wallpaper.png" "$WALLPAPER_DIR/wallpaper.png"
 fi
 
-if [ -d /tmp/lunar-assets/plymouth ]; then
-    echo "Copying Plymouth assets..."
-    mkdir -p /usr/share/plymouth/themes/lunar-os
-    cp -r /tmp/lunar-assets/plymouth/* /usr/share/plymouth/themes/lunar-os/
+for script in welcome shutdown-dialog lunar-settings lunar-session-monitor; do
+    if [ -f "$ASSETS/desktop/$script.py" ]; then
+        install -m 755 "$ASSETS/desktop/$script.py" "$APP_DIR/$script.py"
+    fi
+done
+
+if [ -f "$ASSETS/desktop/welcome-icon.png" ]; then
+    install -m 644 "$ASSETS/desktop/welcome-icon.png" "$APP_DIR/welcome-icon.png"
 fi
 
-if [ -d /tmp/lunar-assets/icons ] && [ "$(ls -A /tmp/lunar-assets/icons 2>/dev/null)" ]; then
-    echo "Copying icons..."
-    mkdir -p /usr/share/icons/hicolor
-    cp -r /tmp/lunar-assets/icons/* /usr/share/icons/hicolor/
+for size in 16 32 48 64 128 256 512; do
+    logo="$ASSETS/desktop/logo-${size}x${size}.png"
+    if [ -f "$logo" ]; then
+        install -D -m 644 "$logo" "$ICON_DIR/${size}x${size}/apps/lunar-os.png"
+    fi
+done
+
+if [ -d "$ASSETS/plymouth" ]; then
+    mkdir -p "$THEME_DIR"
+    cp -r "$ASSETS/plymouth/." "$THEME_DIR/"
 fi
 
-echo "Assets copied successfully"
+if [ -d "$ASSETS/icons" ]; then
+    cp -r "$ASSETS/icons/." "$ICON_DIR/"
+fi
+
+if command -v gtk-update-icon-cache > /dev/null 2>&1; then
+    gtk-update-icon-cache -f -t "$ICON_DIR" || true
+fi

@@ -128,7 +128,7 @@ For better performance:
 
 ### Application Tests
 
-#### File Manager (Thunar)
+#### File Manager (PCManFM)
 
 - [ ] File manager opens from launcher
 - [ ] Home directory is displayed
@@ -184,7 +184,7 @@ For better performance:
 - [ ] Clear button works
 - [ ] Display shows correct results
 
-#### Image Viewer (Ristretto)
+#### Image Viewer (GPicView)
 
 - [ ] Image viewer opens from launcher
 - [ ] Can open image files

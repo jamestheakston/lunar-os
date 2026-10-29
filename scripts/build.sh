@@ -1,35 +1,30 @@
 #!/bin/bash
-# Lunar OS Build Script
-
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+BUILD_DIR="$PROJECT_ROOT/build"
+ASSETS_DEST="config/includes.chroot/tmp/lunar-assets"
+LOG_FILE="$PROJECT_ROOT/lunar-build.log"
 
-echo "=== Lunar OS Build Script ==="
-echo "Project root: $PROJECT_ROOT"
+exec > >(tee "$LOG_FILE") 2>&1
+trap 'echo "Build failed near line $LINENO. Full log: $LOG_FILE" >&2' ERR
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Error: This script must be run as root"
-    echo "Please run: sudo $0"
+    echo "Error: this script must be run as root: sudo $0"
     exit 1
 fi
 
-if ! command -v lb &> /dev/null; then
-    echo "Error: 'lb' not found. Please install live-build:"
-    echo "  apt-get install live-build"
+if ! command -v lb > /dev/null 2>&1; then
+    echo "Error: 'lb' not found. Install live-build: apt-get install live-build"
     exit 1
 fi
 
-if [ -d "$PROJECT_ROOT/build" ]; then
-    echo "Cleaning previous build..."
-    rm -rf "$PROJECT_ROOT/build"
-fi
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 
-mkdir -p "$PROJECT_ROOT/build"
-cd "$PROJECT_ROOT/build"
-
-echo "Initializing live-build..."
+echo "=== Configuring live-build ==="
 lb config \
     --distribution bookworm \
     --archive-areas "main contrib non-free non-free-firmware" \
@@ -43,45 +38,47 @@ lb config \
     --parent-mirror-binary "http://deb.debian.org/debian" \
     --bootappend-live "boot=live components quiet splash" \
     --debian-installer none \
-    --binary-images iso-hybrid
+    --binary-images iso-hybrid \
+    --memtest none \
+    --iso-application "Lunar OS" \
+    --iso-preparer "Lunar OS Team" \
+    --iso-publisher "Lunar OS Project" \
+    --iso-volume "LUNAR_OS"
 
-echo "Syncing configuration files..."
+echo "=== Syncing project configuration ==="
 for dir in package-lists hooks includes.chroot includes.binary bootloaders; do
     if [ -d "$PROJECT_ROOT/config/$dir" ]; then
         mkdir -p "config/$dir"
-        if [ -d "config/$dir" ]; then
-            rsync -a "$PROJECT_ROOT/config/$dir/" "config/$dir/"
-        else
-            cp -a "$PROJECT_ROOT/config/$dir" config/
-        fi
+        cp -a --remove-destination "$PROJECT_ROOT/config/$dir/." "config/$dir/"
     fi
 done
 
-echo "Copying assets to includes.chroot..."
-mkdir -p config/includes.chroot/tmp/lunar-assets/desktop
-mkdir -p config/includes.chroot/tmp/lunar-assets/plymouth
-mkdir -p config/includes.chroot/tmp/lunar-assets/icons
+find config/hooks -type f -name '*.hook.*' -exec chmod +x {} +
 
-if [ -d "$PROJECT_ROOT/assets/desktop" ]; then
-    rsync -a "$PROJECT_ROOT/assets/desktop/" config/includes.chroot/tmp/lunar-assets/desktop/
+copy_assets() {
+    local src="$1" dest="$2"
+    if [ -d "$src" ] && [ -n "$(ls -A "$src")" ]; then
+        mkdir -p "$dest"
+        cp -a "$src/." "$dest/"
+    fi
+}
+
+copy_assets "$PROJECT_ROOT/assets/desktop" "$ASSETS_DEST/desktop"
+copy_assets "$PROJECT_ROOT/assets/boot/plymouth" "$ASSETS_DEST/plymouth"
+copy_assets "$PROJECT_ROOT/assets/icons" "$ASSETS_DEST/icons"
+
+if ! ls config/package-lists/*.list.chroot > /dev/null 2>&1; then
+    echo "Error: no package list found in config/package-lists"
+    exit 1
 fi
 
-if [ -d "$PROJECT_ROOT/assets/boot/plymouth" ]; then
-    rsync -a "$PROJECT_ROOT/assets/boot/plymouth/" config/includes.chroot/tmp/lunar-assets/plymouth/
-fi
-
-if [ -d "$PROJECT_ROOT/assets/icons" ] && [ "$(ls -A "$PROJECT_ROOT/assets/icons" 2>/dev/null)" ]; then
-    rsync -a "$PROJECT_ROOT/assets/icons/" config/includes.chroot/tmp/lunar-assets/icons/
-fi
+echo "=== Package lists ==="
+ls -l config/package-lists
+echo "=== Hooks ==="
+ls config/hooks/normal | grep -E '^0[0-9]{3}-'
 
 echo "=== Building Lunar OS ISO ==="
 lb build
 
-echo "=== Build successful! ==="
-echo "ISO file location: $PROJECT_ROOT/build/*.iso"
-echo ""
-echo "To test the ISO:"
-echo "  qemu-system-x86_64 -m 2048 -cdrom $PROJECT_ROOT/build/*.iso -boot d"
-echo ""
-echo "To write to USB:"
-echo "  dd if=$PROJECT_ROOT/build/*.iso of=/dev/sdX bs=4M status=progress"
+echo "=== Build successful ==="
+ls -lh "$BUILD_DIR"/*.iso

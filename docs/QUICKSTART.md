@@ -103,20 +103,20 @@ When you first boot Lunar OS:
 
 ### Desktop Basics
 
-- **Application Launcher**: Click the moon icon in the bottom-left corner
+- **Application Launcher**: Click the Lunar OS icon in the bottom-left corner
 - **Taskbar**: Shows running applications at the bottom
 - **System Tray**: Network, sound, and other indicators on the right
 - **Clock**: Date and time display
 
 ### Built-in Applications
 
-- **File Manager**: Thunar - manage your files
-- **Terminal**: XFCE Terminal - command line
+- **File Manager**: PCManFM - manage your files
+- **Terminal**: LXTerminal - command line
 - **Web Browser**: Firefox ESR - private browsing mode
 - **Text Editor**: Mousepad - edit text files
 - **Calculator**: Galculator - perform calculations
-- **Image Viewer**: Ristretto - view images
-- **System Monitor**: Monitor system resources
+- **Image Viewer**: GPicView - view images
+- **System Monitor**: LXTask - monitor system resources
 
 ### File Management
 

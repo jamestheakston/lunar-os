@@ -1,47 +1,60 @@
 #!/bin/bash
-# Hook to configure custom shutdown dialog for Lunar OS
-
 set -e
 
-echo "Configuring Lunar OS shutdown dialog..."
+DIALOG=/usr/share/lunar-os/shutdown-dialog.py
 
-# Create shutdown dialog application
-APP_DIR="/usr/share/lunar-os"
-mkdir -p "$APP_DIR"
+write_wrapper() {
+    printf '#!/bin/bash\nexec %s %s\n' "$DIALOG" "$2" > "/usr/local/bin/$1"
+    chmod 755 "/usr/local/bin/$1"
+}
 
-# Copy shutdown dialog script
-if [ -f /tmp/lunar-assets/desktop/shutdown-dialog.py ]; then
-    cp /tmp/lunar-assets/desktop/shutdown-dialog.py "$APP_DIR/"
-    chmod +x "$APP_DIR/shutdown-dialog.py"
-fi
+write_wrapper lunar-shutdown ""
+write_wrapper lunar-restart "--restart"
+write_wrapper lunar-logout "--logout"
 
-# Replace XFCE logout action with custom dialog
-# This will be done by modifying the XFCE panel configuration
+for tool in lxsession-logout lxde-logout; do
+    path="/usr/bin/$tool"
+    if [ -e "$path" ] && ! dpkg-divert --list | grep -q "diversion of $path to"; then
+        dpkg-divert --local --rename --divert "$path.real" --add "$path"
+    fi
+    if [ -e "$path.real" ] || [ ! -e "$path" ]; then
+        printf '#!/bin/bash\nexec /usr/local/bin/lunar-shutdown\n' > "$path"
+        chmod 755 "$path"
+    fi
+done
 
-# Create a wrapper script for shutdown/restart
-cat > /usr/local/bin/lunar-shutdown << 'EOF'
-#!/bin/bash
-# Lunar OS custom shutdown dialog
-/usr/share/lunar-os/shutdown-dialog.py
-EOF
-chmod +x /usr/local/bin/lunar-shutdown
+mkdir -p /usr/share/applications
 
-cat > /usr/local/bin/lunar-restart << 'EOF'
-#!/bin/bash
-# Lunar OS custom restart dialog
-/usr/share/lunar-os/shutdown-dialog.py --restart
-EOF
-chmod +x /usr/local/bin/lunar-restart
+cat > /usr/share/applications/lunar-shutdown.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Shut Down
+Comment=Shut down, restart or log out
+Icon=system-shutdown
+Exec=/usr/local/bin/lunar-shutdown
+Terminal=false
+Categories=System;
+ENTRY
 
-# Configure polkit to allow shutdown without password (for live session)
-mkdir -p /etc/polkit-1/localauthority/50-local.d
-cat > /etc/polkit-1/localauthority/50-local.d/60-lunar-shutdown.pkla << EOF
-[Allow Lunar Shutdown]
-Identity=unix-user:*
-Action=org.freedesktop.login1.power-off;org.freedesktop.login1.power-off-multiple-sessions;org.freedesktop.login1.reboot;org.freedesktop.login1.reboot-multiple-sessions
-ResultAny=yes
-ResultInactive=yes
-ResultActive=yes
-EOF
+cat > /usr/share/applications/lunar-restart.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Restart and Start Fresh
+Icon=system-reboot
+Exec=/usr/local/bin/lunar-restart
+Terminal=false
+Categories=System;
+ENTRY
 
-echo "Shutdown dialog configured"
+cat > /usr/share/applications/lunar-logout.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Log Out
+Icon=system-log-out
+Exec=/usr/local/bin/lunar-logout
+Terminal=false
+Categories=System;
+ENTRY

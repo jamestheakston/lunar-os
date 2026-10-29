@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+mkdir -p /etc/systemd/system-generators /etc/systemd/system
+ln -sf /dev/null /etc/systemd/system-generators/systemd-gpt-auto-generator
+
+for unit in swap.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target; do
+    ln -sf /dev/null "/etc/systemd/system/$unit"
+done
+
+if [ -f /etc/fstab ]; then
+    sed -i '/\sswap\s/d' /etc/fstab
+fi

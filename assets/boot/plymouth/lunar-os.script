@@ -1,110 +1,109 @@
-# Lunar OS Plymouth Boot Script
-# Minimalist lunar-themed boot screen
+Window.SetBackgroundTopColor(0.102, 0.102, 0.180);
+Window.SetBackgroundBottomColor(0.055, 0.055, 0.110);
 
-# Define colors
-lunar_bg = Color("#1a1a2e");  # Deep charcoal/midnight blue
-lunar_silver = Color("#c0c0c0");  # Soft silver
-lunar_violet = Color("#6c5ce7");  # Violet accent
-text_color = Color("#ffffff");  # White text
+screen.width = Window.GetWidth();
+screen.height = Window.GetHeight();
+screen.cx = screen.width / 2;
+screen.cy = screen.height / 2;
 
-# Screen dimensions
-screen_width = Window.GetWidth();
-screen_height = Window.GetHeight();
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(screen.cx - logo.image.GetWidth() / 2);
+logo.sprite.SetY(screen.cy - logo.image.GetHeight() / 2 - 90);
+logo.sprite.SetOpacity(0);
 
-# Create background
-background = Image(screen_width, screen_height);
-background.Fill(lunar_bg);
-Window.SetBackground(background);
+title.image = Image.Text("LUNAR OS", 0.88, 0.88, 0.95, 1, "Sans Bold 26");
+title.sprite = Sprite(title.image);
+title.sprite.SetX(screen.cx - title.image.GetWidth() / 2);
+title.sprite.SetY(screen.cy + 10);
+title.sprite.SetOpacity(0);
 
-# Logo position (centered)
-logo_x = screen_width / 2;
-logo_y = screen_height / 2 - 50;
+message.sprite = Sprite();
+message.sprite.SetOpacity(0);
 
-# Status text position
-status_x = screen_width / 2;
-status_y = screen_height / 2 + 100;
-
-# Loading indicator position
-spinner_x = screen_width / 2;
-spinner_y = screen_height / 2 + 60;
-
-# Draw moon-like logo (simple circle with crescent)
-moon = Image(100, 100);
-moon.Fill(lunar_silver);
-moon_logo = moon.Scale(80, 80);
-
-# Status message
-status_message = "Preparing your temporary session...";
-status = Text();
-status.Text = status_message;
-status.Color = text_color;
-status.Font = "Sans 12";
-status.SetAlign(status_x, status_y);
-
-# Loading spinner (dots)
-spinner_dots = [];
-for i = 0 to 5 do
-    dot = Image(8, 8);
-    dot.Fill(lunar_violet);
-    spinner_dots[i] = dot;
-end
-
-# Animation variables
-spinner_angle = 0;
-spinner_radius = 30;
-
-# Function to update spinner
-fun update_spinner(progress)
+fun show_message(text)
 {
-    # Clear spinner area
-    # (In a real implementation, we'd clear and redraw)
-    
-    # Update spinner angle
-    spinner_angle = spinner_angle + 10;
-    
-    # Draw dots in a circle
-    for i = 0 to 5 do
-        angle = spinner_angle + (i * 60);
-        dot_x = spinner_x + (spinner_radius * Math.Cos(angle));
-        dot_y = spinner_y + (spinner_radius * Math.Sin(angle));
-        spinner_dots[i].SetPosition(dot_x, dot_y);
-    end
+    image = Image.Text(text, 0.70, 0.70, 0.80, 1, "Sans 12");
+    message.sprite.SetImage(image);
+    message.sprite.SetX(screen.cx - image.GetWidth() / 2);
+    message.sprite.SetY(screen.cy + 150);
 }
 
-# Main animation loop
-fun dialog_setup()
+spinner.count = 8;
+spinner.radius = 22;
+spinner.cy = screen.cy + 95;
+spinner.step = 0;
+spinner.frame = 0;
+
+for (i = 0; i < spinner.count; i++)
 {
-    # Set up any dialog boxes
+    dot[i].image = Image("dot.png");
+    dot[i].sprite = Sprite(dot[i].image);
+    angle = 2 * Math.Pi * i / spinner.count;
+    dot[i].sprite.SetX(screen.cx + spinner.radius * Math.Sin(angle) - dot[i].image.GetWidth() / 2);
+    dot[i].sprite.SetY(spinner.cy - spinner.radius * Math.Cos(angle) - dot[i].image.GetHeight() / 2);
+    dot[i].sprite.SetOpacity(0);
 }
 
-fun dialog_normal()
-{
-    # Default dialog state
-}
-
-fun dialog_password()
-{
-    # Password dialog state
-}
-
-fun dialog_question()
-{
-    # Question dialog state
-}
+state.fade = 0;
 
 fun refresh_callback()
 {
-    # Update spinner animation
-    if (progress < 1) then
-        update_spinner(progress);
-    fi;
+    state.fade = state.fade + 0.02;
+    if (state.fade > 1)
+        state.fade = 1;
+
+    logo.sprite.SetOpacity(state.fade);
+    title.sprite.SetOpacity(state.fade);
+    message.sprite.SetOpacity(state.fade);
+
+    spinner.frame = spinner.frame + 1;
+    if (spinner.frame >= 4)
+    {
+        spinner.frame = 0;
+        spinner.step = spinner.step + 1;
+    }
+
+    for (i = 0; i < spinner.count; i++)
+    {
+        distance = (spinner.step - i) % spinner.count;
+        if (distance < 0)
+            distance = distance + spinner.count;
+        dot[i].sprite.SetOpacity(state.fade * (1 - distance / spinner.count) * 0.9 + 0.1 * state.fade);
+    }
 }
 
-# Display logo centered
-moon_logo.SetPosition(logo_x - 40, logo_y - 40);
-
-# Initial status
-status.SetPosition(status_x, status_y);
-
-# Start animation
 Plymouth.SetRefreshFunction(refresh_callback);
+
+fun message_callback(text)
+{
+    show_message(text);
+}
+
+Plymouth.SetMessageFunction(message_callback);
+
+fun update_status_callback(status)
+{
+}
+
+Plymouth.SetUpdateStatusFunction(update_status_callback);
+
+fun display_normal_callback()
+{
+}
+
+fun display_password_callback(prompt, bullets)
+{
+    show_message(prompt);
+}
+
+fun display_question_callback(prompt, entry)
+{
+    show_message(prompt + " " + entry);
+}
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetDisplayQuestionFunction(display_question_callback);
+
+show_message("Preparing your temporary session...");

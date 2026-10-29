@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Lunar Session Status
+Exec=/usr/share/lunar-os/lunar-session-monitor.py
+Icon=lunar-os
+NoDisplay=true
+OnlyShowIn=LXDE;

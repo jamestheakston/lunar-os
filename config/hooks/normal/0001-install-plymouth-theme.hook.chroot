@@ -1,25 +1,10 @@
 #!/bin/bash
-# Hook to install and configure custom Lunar OS Plymouth theme
-
 set -e
 
-echo "Configuring Lunar OS Plymouth boot screen..."
+THEME=/usr/share/plymouth/themes/lunar-os/lunar-os.plymouth
 
-# Create Plymouth theme directory
-mkdir -p /usr/share/plymouth/themes/lunar-os
-
-# Copy Plymouth theme files (will be created in assets/boot/plymouth)
-if [ -d /tmp/lunar-assets/plymouth ]; then
-    cp -r /tmp/lunar-assets/plymouth/* /usr/share/plymouth/themes/lunar-os/
+if [ -f "$THEME" ]; then
+    update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth "$THEME" 100
+    update-alternatives --set default.plymouth "$THEME"
+    update-initramfs -u
 fi
-
-# Set Lunar OS as default Plymouth theme
-if [ -f /usr/share/plymouth/themes/lunar-os/lunar-os.plymouth ]; then
-    update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/lunar-os/lunar-os.plymouth 100
-    update-alternatives --set default.plymouth /usr/share/plymouth/themes/lunar-os/lunar-os.plymouth
-fi
-
-# Update initramfs to include the new theme
-update-initramfs -u
-
-echo "Plymouth theme configured"

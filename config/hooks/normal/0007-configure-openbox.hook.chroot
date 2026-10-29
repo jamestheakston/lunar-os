@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+RC=/etc/xdg/openbox/LXDE-rc.xml
+KEYS=/tmp/lunar-assets/desktop/openbox-keybinds.xml
+
+if [ -f "$RC" ]; then
+    sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Lunar</name>|' "$RC"
+    if [ -f "$KEYS" ] && ! grep -q 'lunar-shutdown' "$RC"; then
+        awk -v keys="$KEYS" '/<\/keyboard>/ { while ((getline line < keys) > 0) print line } { print }' "$RC" > "$RC.new"
+        mv "$RC.new" "$RC"
+    fi
+fi

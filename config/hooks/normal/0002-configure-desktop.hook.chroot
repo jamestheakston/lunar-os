@@ -1,47 +1,41 @@
 #!/bin/bash
-# Hook to configure LXDE desktop environment for Lunar OS
-
 set -e
 
-echo "Configuring LXDE desktop environment..."
+mkdir -p /etc/lightdm/lightdm.conf.d
 
-# Get the username
-USERNAME="lunar"
-USER_HOME="/home/$USERNAME"
+cat > /etc/lightdm/lightdm.conf.d/50-lunar.conf << 'CONF'
+[Seat:*]
+user-session=LXDE
+autologin-session=LXDE
+CONF
 
-# Create user directories
-mkdir -p "$USER_HOME"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
-chown -R $USERNAME:$USERNAME "$USER_HOME"
-
-# Copy desktop assets (wallpaper, icons, etc.)
-if [ -d /tmp/lunar-assets/desktop ]; then
-    cp -r /tmp/lunar-assets/desktop/* "$USER_HOME/.config/"
-    chown -R $USERNAME:$USERNAME "$USER_HOME/.config"
-fi
-
-# Copy wallpaper to system location
-if [ -f /tmp/lunar-assets/desktop/wallpaper.png ]; then
-    mkdir -p /usr/share/backgrounds/lunar-os
-    cp /tmp/lunar-assets/desktop/wallpaper.png /usr/share/backgrounds/lunar-os/
-fi
-
-# Configure LightDM to auto-login
-if [ -f /etc/lightdm/lightdm.conf ]; then
-    sed -i 's/^#autologin-user=.*/autologin-user=lunar/' /etc/lightdm/lightdm.conf
-    sed -i 's/^#autologin-user-timeout=.*/autologin-user-timeout=0/' /etc/lightdm/lightdm.conf
-fi
-
-# Configure LightDM GTK greeter
-if [ -f /etc/lightdm/lightdm-gtk-greeter.conf ]; then
-    cat > /etc/lightdm/lightdm-gtk-greeter.conf << EOF
+cat > /etc/lightdm/lightdm-gtk-greeter.conf << 'CONF'
 [greeter]
 background=/usr/share/backgrounds/lunar-os/wallpaper.png
 theme-name=Adwaita-dark
 icon-theme-name=Adwaita
 font-name=Sans 10
 position=50%,center
-default-session=LXDE
-EOF
+CONF
+
+if [ -x /usr/sbin/lightdm ]; then
+    echo /usr/sbin/lightdm > /etc/X11/default-display-manager
 fi
 
-echo "LXDE desktop configured"
+python3 - << 'PY'
+import configparser
+import os
+
+path = "/etc/xdg/lxsession/LXDE/desktop.conf"
+if os.path.exists(path):
+    conf = configparser.RawConfigParser(interpolation=None)
+    conf.optionxform = str
+    conf.read(path)
+    if not conf.has_section("GTK"):
+        conf.add_section("GTK")
+    conf.set("GTK", "sNet/ThemeName", "Adwaita-dark")
+    conf.set("GTK", "sNet/IconThemeName", "Adwaita")
+    conf.set("GTK", "sGtk/FontName", "Sans 10")
+    with open(path, "w") as handle:
+        conf.write(handle, space_around_delimiters=False)
+PY

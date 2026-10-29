@@ -1,72 +1,28 @@
 #!/bin/bash
-# Hook to configure user home directory and desktop settings
-
 set -e
 
-echo "Configuring user home directory..."
+SKEL=/etc/skel
 
-USERNAME="lunar"
-USER_HOME="/home/$USERNAME"
+mkdir -p "$SKEL"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
 
-# Create user directories
-mkdir -p "$USER_HOME"/{Desktop,Documents,Downloads,Pictures,Music,Videos,Templates}
-chown -R $USERNAME:$USERNAME "$USER_HOME"
-
-# Create default desktop shortcuts
-cat > "$USER_HOME/Desktop/File Manager.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Link
-Name=File Manager
-Icon=folder
-URL=/home/lunar
-EOF
-chmod +x "$USER_HOME/Desktop/File Manager.desktop"
-chown $USERNAME:$USERNAME "$USER_HOME/Desktop/File Manager.desktop"
-
-cat > "$USER_HOME/Desktop/Documents.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Link
-Name=Documents
-Icon=folder-documents
-URL=/home/lunar/Documents
-EOF
-chmod +x "$USER_HOME/Desktop/Documents.desktop"
-chown $USERNAME:$USERNAME "$USER_HOME/Desktop/Documents.desktop"
-
-cat > "$USER_HOME/Desktop/Downloads.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Link
-Name=Downloads
-Icon=folder-downloads
-URL=/home/lunar/Downloads
-EOF
-chmod +x "$USER_HOME/Desktop/Downloads.desktop"
-chown $USERNAME:$USERNAME "$USER_HOME/Desktop/Downloads.desktop"
-
-# Create .desktop file for custom shutdown in panel
-cat > /usr/share/applications/lunar-shutdown.desktop << 'EOF'
+make_shortcut() {
+    local name="$1" icon="$2" command="$3"
+    cat > "$SKEL/Desktop/$name.desktop" << ENTRY
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Shut Down
-Icon=system-shutdown
-Exec=/usr/local/bin/lunar-shutdown
+Name=$name
+Icon=$icon
+Exec=$command
 Terminal=false
-Categories=System;
-EOF
+ENTRY
+    chmod 755 "$SKEL/Desktop/$name.desktop"
+}
 
-cat > /usr/share/applications/lunar-restart.desktop << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Restart
-Icon=system-reboot
-Exec=/usr/local/bin/lunar-restart
-Terminal=false
-Categories=System;
-EOF
-
-echo "User home directory configured"
+make_shortcut "File Manager" system-file-manager "pcmanfm %h"
+make_shortcut "Documents" folder-documents "pcmanfm %h/Documents"
+make_shortcut "Downloads" folder-downloads "pcmanfm %h/Downloads"
+make_shortcut "Temporary Files" folder-temp "pcmanfm /tmp"
+make_shortcut "Terminal" utilities-terminal "lxterminal"
+make_shortcut "Web Browser" web-browser "firefox-esr"
+make_shortcut "Settings" preferences-system "/usr/share/lunar-os/lunar-settings.py"
