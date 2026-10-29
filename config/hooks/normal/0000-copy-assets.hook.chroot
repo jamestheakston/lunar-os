@@ -13,9 +13,12 @@ if [ -f "$ASSETS/desktop/wallpaper.png" ]; then
     install -m 644 "$ASSETS/desktop/wallpaper.png" "$WALLPAPER_DIR/wallpaper.png"
 fi
 
-for script in welcome shutdown-dialog shutdown-screen lunar-settings lunar-session-monitor lunar-greeter lunar-store lunar-metadata lunar-tour lunar-wallpaper lunar-shortcuts lunar-sounds lunar-about; do
+for script in welcome shutdown-dialog shutdown-screen lunar-settings lunar-session-monitor lunar-greeter lunar-store lunar-metadata lunar-tour lunar-wallpaper lunar-shortcuts lunar-sounds lunar-about install-vbox-guest-additions; do
     if [ -f "$ASSETS/desktop/$script.py" ]; then
         install -m 755 "$ASSETS/desktop/$script.py" "$APP_DIR/$script.py"
+    fi
+    if [ -f "$ASSETS/desktop/$script.sh" ]; then
+        install -m 755 "$ASSETS/desktop/$script.sh" "$APP_DIR/$script.sh"
     fi
 done
 

@@ -88,6 +88,7 @@ curl
 sudo
 policykit-1
 polkitd
+virtualbox-guest-additions-iso
 
 # Fonts
 fonts-dejavu-core

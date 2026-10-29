@@ -122,3 +122,15 @@ Icon=help-about
 Terminal=false
 Categories=System;
 ENTRY
+
+cat > /usr/share/applications/virtualbox-guest-additions.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install VirtualBox Guest Additions
+Comment=Install VirtualBox Guest Additions for better VM experience
+Exec=lxterminal -e sudo /usr/share/lunar-os/install-vbox-guest-additions.sh
+Icon=virtualbox
+Terminal=false
+Categories=System;Utility;
+ENTRY
