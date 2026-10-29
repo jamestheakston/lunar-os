@@ -62,3 +62,63 @@ Icon=edit-clear
 Terminal=false
 Categories=Utility;Security;
 ENTRY
+
+cat > /usr/share/applications/lunar-tour.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Welcome Tour
+Comment=Interactive tutorial for first-time users
+Exec=/usr/share/lunar-os/lunar-tour.py
+Icon=lunar-os
+Terminal=false
+Categories=System;
+ENTRY
+
+cat > /usr/share/applications/lunar-wallpaper.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Wallpaper Gallery
+Comment=Choose from multiple wallpapers
+Exec=/usr/share/lunar-os/lunar-wallpaper.py
+Icon=preferences-desktop-wallpaper
+Terminal=false
+Categories=Settings;DesktopSettings;
+ENTRY
+
+cat > /usr/share/applications/lunar-shortcuts.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Keyboard Shortcuts
+Comment=View all keyboard shortcuts
+Exec=/usr/share/lunar-os/lunar-shortcuts.py
+Icon=input-keyboard
+Terminal=false
+Categories=System;
+ENTRY
+
+cat > /usr/share/applications/lunar-sounds.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=System Sounds
+Comment=Configure system notification sounds
+Exec=/usr/share/lunar-os/lunar-sounds.py
+Icon=audio-card
+Terminal=false
+Categories=Settings;
+ENTRY
+
+cat > /usr/share/applications/lunar-about.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=About Lunar OS
+Comment=Version, license, and changelog
+Exec=/usr/share/lunar-os/lunar-about.py
+Icon=help-about
+Terminal=false
+Categories=System;
+ENTRY
