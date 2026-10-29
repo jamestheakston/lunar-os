@@ -3,6 +3,7 @@ import configparser
 import os
 import shutil
 import subprocess
+from datetime import datetime
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -15,6 +16,9 @@ LXSESSION_USER = os.path.join(HOME, ".config", "lxsession", "LXDE", "desktop.con
 LXSESSION_SYSTEM = "/etc/xdg/lxsession/LXDE/desktop.conf"
 LIGHT_THEME = "Adwaita"
 DARK_THEME = "Adwaita-dark"
+CURRENT_YEAR = datetime.now().year
+AUTHOR = "James Theakston"
+LICENSE = "MIT"
 
 LAUNCHER_PAGES = (
     ("display", "Display", "Change resolution, orientation and monitor layout.", "Open display settings", ("lxrandr",)),
@@ -24,6 +28,39 @@ LAUNCHER_PAGES = (
     ("startup", "Startup Applications", "Choose which applications start with the desktop.", "Open session settings", ("lxsession-edit",)),
     ("themes", "Advanced Themes", "Pick GTK themes, icons, cursors and fonts.", "Open appearance tool", ("lxappearance",)),
 )
+
+CHANGELOG = """Version 1.0.0 (2026)
+- Initial release of Lunar OS Home Edition
+- Disposable session architecture with RAM-based storage
+- LXDE desktop environment with Lunar OS branding
+- Built-in VPN support (OpenVPN)
+- Browser selection (Firefox ESR, Tor Browser)
+- Custom shutdown and restart dialogs
+- Welcome window with session information
+"""
+
+MIT_LICENSE_TEXT = """MIT License
+
+Copyright (c) {year} {author}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+""".format(year=CURRENT_YEAR, author=AUTHOR)
 
 
 def launch(*command):
@@ -106,6 +143,7 @@ class SettingsWindow(Gtk.Window):
         layout.pack_start(self.stack, True, True, 0)
 
         self.add_page("appearance", "Appearance", self.build_appearance())
+        self.add_page("updates", "Updates", self.build_updates())
         for name, title, description, button, command in LAUNCHER_PAGES[:5]:
             self.add_page(name, title, self.build_launcher(title, description, button, command))
         self.add_page("session", "Session", self.build_session())
@@ -163,6 +201,37 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(wallpaper, False, False, 8)
         return box
 
+    def build_updates(self):
+        box = self.page("Updates")
+        box.pack_start(
+            self.text(
+                "Check for new releases and updates of Lunar OS Home Edition."
+            ),
+            False, False, 0,
+        )
+        
+        button = Gtk.Button(label="Check for Updates on GitHub")
+        button.set_halign(Gtk.Align.START)
+        button.connect("clicked", self.check_updates)
+        box.pack_start(button, False, False, 0)
+        
+        return box
+
+    def check_updates(self, button):
+        dialog = Gtk.MessageDialog(
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.CLOSE,
+            text="Check for Updates",
+        )
+        dialog.format_secondary_text(
+            "To check for the latest version of Lunar OS Home Edition, please visit the GitHub repository:\n\n"
+            "https://github.com/jamestheakston/lunar-os\n\n"
+            "The built-in update check feature is not currently implemented. "
+            "Please check the repository manually for new releases and changes."
+        )
+        dialog.run()
+        dialog.destroy()
+
     def choose_wallpaper(self, _button):
         dialog = Gtk.FileChooserDialog(
             title="Choose wallpaper",
@@ -205,15 +274,99 @@ class SettingsWindow(Gtk.Window):
 
     def build_about(self):
         box = self.page("About Lunar OS")
-        box.pack_start(
-            self.text(
-                "Lunar OS is a disposable desktop. The base system is read-only and "
-                "all session changes are stored in RAM. Disposable storage reduces persistence but cannot "
-                "remove data you copied to external drives, sent over a network or that hardware retained."
-            ),
-            False, False, 0,
-        )
+        
+        # Header with logo and title
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        header_box.set_margin_bottom(16)
+        
+        logo_path = "/usr/share/lunar-os/logo-128x128.png"
+        if os.path.exists(logo_path):
+            logo = Gtk.Image.new_from_file(logo_path)
+            header_box.pack_start(logo, False, False, 0)
+        else:
+            logo_label = Gtk.Label(label="\U0001F319")
+            logo_label.set_markup('<span size="xx-large">\U0001F319</span>')
+            header_box.pack_start(logo_label, False, False, 0)
+        
+        title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        title_label = Gtk.Label()
+        title_label.set_markup('<span size="x-large" weight="bold">LunarOS Home Edition</span>')
+        title_label.set_halign(Gtk.Align.START)
+        title_box.pack_start(title_label, False, False, 0)
+        
+        copyright_label = Gtk.Label(label=f"\u00A9 {CURRENT_YEAR} {AUTHOR}")
+        copyright_label.set_halign(Gtk.Align.START)
+        copyright_label.get_style_context().add_class("note")
+        title_box.pack_start(copyright_label, False, False, 0)
+        
+        header_box.pack_start(title_box, True, True, 0)
+        box.pack_start(header_box, False, False, 0)
+        
+        # Version info
+        version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        version_label = Gtk.Label(label="You are updated to the latest version of LunarOS Home")
+        version_label.set_halign(Gtk.Align.START)
+        version_box.pack_start(version_label, False, False, 0)
+        
+        check_button = Gtk.Button(label="Check for Updates")
+        check_button.connect("clicked", self.check_updates)
+        version_box.pack_start(check_button, False, False, 0)
+        box.pack_start(version_box, False, False, 8)
+        
+        # License button
+        license_button = Gtk.Button(label="View License")
+        license_button.set_halign(Gtk.Align.START)
+        license_button.connect("clicked", self.show_license)
+        box.pack_start(license_button, False, False, 8)
+        
+        # Changelog
+        changelog_label = Gtk.Label()
+        changelog_label.set_markup('<span weight="bold">Changelog</span>')
+        changelog_label.set_halign(Gtk.Align.START)
+        changelog_label.set_margin_top(16)
+        box.pack_start(changelog_label, False, False, 0)
+        
+        changelog_text = Gtk.TextView()
+        changelog_text.set_editable(False)
+        changelog_text.set_wrap_mode(Gtk.WrapMode.WORD)
+        changelog_text.set_left_margin(0)
+        changelog_text.set_right_margin(0)
+        changelog_text.set_top_margin(0)
+        changelog_text.set_bottom_margin(0)
+        
+        buffer = changelog_text.get_buffer()
+        buffer.set_text(CHANGELOG)
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(200)
+        scrolled.add(changelog_text)
+        box.pack_start(scrolled, True, True, 0)
+        
         return box
+
+    def show_license(self, button):
+        dialog = Gtk.MessageDialog(
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.CLOSE,
+            text="License",
+        )
+        
+        text_view = Gtk.TextView()
+        text_view.set_editable(False)
+        text_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        buffer = text_view.get_buffer()
+        buffer.set_text(MIT_LICENSE_TEXT)
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_min_content_height(300)
+        scrolled.set_min_content_width(500)
+        scrolled.add(text_view)
+        
+        dialog.get_content_area().pack_start(scrolled, True, True, 0)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
 
 
 def main():
