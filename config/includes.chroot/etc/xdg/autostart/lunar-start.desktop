@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Lunar Start
+Comment=Lunar OS Start Menu
+Icon=lunar-os
+Exec=/usr/share/lunar-os/lunar-start.py
+Terminal=false
+Categories=System;

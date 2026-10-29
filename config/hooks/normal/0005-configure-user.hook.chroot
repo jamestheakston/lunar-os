@@ -19,8 +19,8 @@ ENTRY
     chmod 755 "$SKEL/Desktop/$name.desktop"
 }
 
-make_shortcut "File Manager" system-file-manager "pcmanfm %h"
+make_shortcut "Orbit Explorer" system-file-manager "pcmanfm %h"
 make_shortcut "Lunar Settings" preferences-system "/usr/share/lunar-os/lunar-settings.py"
 make_shortcut "Terminal" utilities-terminal "lxterminal"
 make_shortcut "Temporary Files" folder-temp "pcmanfm /tmp"
-make_shortcut "Network Manager" network-workgroup "nm-connection-editor"
+make_shortcut "ProtonVPN" network-vpn "protonvpn-cli"

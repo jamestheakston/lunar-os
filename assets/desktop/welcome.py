@@ -143,6 +143,9 @@ class WelcomeWindow(Gtk.Window):
         # Update desktop shortcut
         self.update_desktop_shortcut()
         
+        # Remove Firefox from dock if not selected
+        self.update_dock()
+        
         self.destroy()
 
     def update_desktop_shortcut(self):
@@ -167,6 +170,22 @@ Categories=Network;WebBrowser;
             f.write(desktop_entry)
         
         os.chmod(shortcut_path, 0o755)
+
+    def update_dock(self):
+        # LXPanel configuration path
+        panel_config = os.path.expanduser("~/.config/lxpanel/LXDE/panels/panel")
+        
+        if os.path.exists(panel_config):
+            with open(panel_config, "r") as f:
+                content = f.read()
+            
+            # Remove Firefox from dock if not selected
+            if self.selected_browser != "firefox-esr":
+                content = content.replace("firefox-esr.desktop", "")
+                content = content.replace("firefox.desktop", "")
+            
+            with open(panel_config, "w") as f:
+                f.write(content)
 
     def on_destroy(self, _widget):
         try:
