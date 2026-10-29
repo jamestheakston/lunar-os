@@ -10,50 +10,50 @@ from gi.repository import Gdk, GLib, Gtk
 HOME = os.path.expanduser("~")
 
 CSS = b"""
-window.lunar-metadata {
+window {
     background-color: #f5f5f5;
 }
-window.lunar-metadata .info-box {
+.info-box {
     background-color: #e8f4ff;
     border: 1px solid #a8d0f0;
     border-radius: 8px;
     padding: 12px;
     margin: 8px;
 }
-window.lunar-metadata .info-label {
+.info-label {
     color: #333;
     font-size: 12px;
 }
-window.lunar-metadata .file-item {
+.file-item {
     background-color: #ffffff;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 12px;
     margin: 8px;
 }
-window.lunar-metadata .file-item:hover {
+.file-item:hover {
     background-color: #f8f8ff;
     border-color: #a8d0f0;
 }
-window.lunar-metadata .file-name {
+.file-name {
     font-size: 14px;
     font-weight: bold;
 }
-window.lunar-metadata .file-status {
+.file-status {
     font-size: 12px;
     color: #666;
 }
-window.lunar-metadata .strip-button {
+.strip-button {
     background-color: #6c5ce7;
     color: white;
     border: none;
     border-radius: 4px;
     padding: 8px 16px;
 }
-window.lunar-metadata .strip-button:hover {
+.strip-button:hover {
     background-color: #7d6ff0;
 }
-window.lunar-metadata .progress-bar {
+.progress-bar {
     margin-top: 8px;
 }
 """

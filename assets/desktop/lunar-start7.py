@@ -10,57 +10,57 @@ HOME = os.path.expanduser("~")
 BROWSER_CONFIG = os.path.join(HOME, ".config", "lunar-os/browser")
 
 CSS = b"""
-window.lunar-start7 {
+window {
     background-color: #1e1e1e;
     border: 1px solid #4a4a4a;
     border-radius: 0;
 }
-window.lunar-start7 .search-box {
+.search-box {
     background-color: #ffffff;
     border: 1px solid #888;
     border-radius: 0;
     padding: 8px;
     margin: 8px;
 }
-window.lunar-start7 .sidebar {
+.sidebar {
     background-color: #2d2d2d;
     border-right: 1px solid #4a4a4a;
 }
-window.lunar-start7 .sidebar-item {
+.sidebar-item {
     padding: 12px 16px;
     border-bottom: 1px solid #3a3a3a;
     color: #ffffff;
 }
-window.lunar-start7 .sidebar-item:hover {
+.sidebar-item:hover {
     background-color: #4a4a4a;
 }
-window.lunar-start7 .sidebar-item.active {
+.sidebar-item.active {
     background-color: #0078d7;
 }
-window.lunar-start7 .content {
+.content {
     background-color: #f0f0f0;
 }
-window.lunar-start7 .program-item {
+.program-item {
     padding: 8px 12px;
     border-bottom: 1px solid #e0e0e0;
 }
-window.lunar-start7 .program-item:hover {
+.program-item:hover {
     background-color: #e8f4ff;
 }
-window.lunar-start7 .program-icon {
+.program-icon {
     margin-right: 12px;
 }
-window.lunar-start7 .folder-item {
+.folder-item {
     padding: 12px 16px;
     border-bottom: 1px solid #e0e0e0;
 }
-window.lunar-start7 .folder-item:hover {
+.folder-item:hover {
     background-color: #e8f4ff;
 }
-window.lunar-start7 .folder-icon {
+.folder-icon {
     margin-right: 12px;
 }
-window.lunar-start7 .power-button {
+.power-button {
     background-color: #d32f2f;
     color: white;
     border: none;
@@ -68,13 +68,13 @@ window.lunar-start7 .power-button {
     padding: 8px 16px;
     margin: 8px;
 }
-window.lunar-start7 .power-button:hover {
+.power-button:hover {
     background-color: #b71c1c;
 }
-window.lunar-start7 label {
+label {
     color: #ffffff;
 }
-window.lunar-start7 .content label {
+.content label {
     color: #000000;
 }
 """
