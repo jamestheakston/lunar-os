@@ -143,7 +143,6 @@ class SettingsWindow(Gtk.Window):
         layout.pack_start(self.stack, True, True, 0)
 
         self.add_page("appearance", "Appearance", self.build_appearance())
-        self.add_page("updates", "Updates", self.build_updates())
         for name, title, description, button, command in LAUNCHER_PAGES[:5]:
             self.add_page(name, title, self.build_launcher(title, description, button, command))
         self.add_page("session", "Session", self.build_session())
@@ -201,37 +200,6 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(wallpaper, False, False, 8)
         return box
 
-    def build_updates(self):
-        box = self.page("Updates")
-        box.pack_start(
-            self.text(
-                "Check for new releases and updates of Lunar OS Home Edition."
-            ),
-            False, False, 0,
-        )
-        
-        button = Gtk.Button(label="Check for Updates on GitHub")
-        button.set_halign(Gtk.Align.START)
-        button.connect("clicked", self.check_updates)
-        box.pack_start(button, False, False, 0)
-        
-        return box
-
-    def check_updates(self, button):
-        dialog = Gtk.MessageDialog(
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.CLOSE,
-            text="Check for Updates",
-        )
-        dialog.format_secondary_text(
-            "To check for the latest version of Lunar OS Home Edition, please visit the GitHub repository:\n\n"
-            "https://github.com/jamestheakston/lunar-os\n\n"
-            "The built-in update check feature is not currently implemented. "
-            "Please check the repository manually for new releases and changes."
-        )
-        dialog.run()
-        dialog.destroy()
-
     def choose_wallpaper(self, _button):
         dialog = Gtk.FileChooserDialog(
             title="Choose wallpaper",
@@ -257,6 +225,13 @@ class SettingsWindow(Gtk.Window):
             ),
             False, False, 0,
         )
+        
+        # Storage button with chevron
+        storage_button = Gtk.Button(label="Storage \u203A")
+        storage_button.set_halign(Gtk.Align.START)
+        storage_button.connect("clicked", self.show_storage_page)
+        box.pack_start(storage_button, False, False, 8)
+        
         for label, command in (
             ("Shut Down and Discard Session\u2026", "/usr/local/bin/lunar-shutdown"),
             ("Restart and Start Fresh\u2026", "/usr/local/bin/lunar-restart"),
@@ -271,6 +246,21 @@ class SettingsWindow(Gtk.Window):
         files.connect("clicked", lambda _b: launch("pcmanfm", "/tmp"))
         box.pack_start(files, False, False, 8)
         return box
+
+    def check_updates(self, button):
+        dialog = Gtk.MessageDialog(
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.CLOSE,
+            text="Check for Updates",
+        )
+        dialog.format_secondary_text(
+            "To check for the latest version of Lunar OS Home Edition, please visit the GitHub repository:\n\n"
+            "https://github.com/jamestheakston/lunar-os\n\n"
+            "The built-in update check feature is not currently implemented. "
+            "Please check the repository manually for new releases and changes."
+        )
+        dialog.run()
+        dialog.destroy()
 
     def build_about(self):
         box = self.page("About Lunar OS")
@@ -367,6 +357,126 @@ class SettingsWindow(Gtk.Window):
         dialog.show_all()
         dialog.run()
         dialog.destroy()
+
+    def show_storage_page(self, button):
+        storage_page = self.build_storage()
+        storage_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        storage_box.pack_start(storage_page, True, True, 0)
+        
+        dialog = Gtk.Dialog(
+            title="Storage",
+            parent=self,
+            flags=0,
+        )
+        dialog.add_button("Back", Gtk.ResponseType.CLOSE)
+        dialog.get_content_area().pack_start(storage_box, True, True, 0)
+        dialog.set_default_size(600, 500)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+    def build_storage(self):
+        box = self.page("Storage")
+        
+        # Storage info
+        storage_info = self.get_storage_info()
+        info_label = Gtk.Label(label=storage_info)
+        info_label.set_halign(Gtk.Align.START)
+        box.pack_start(info_label, False, False, 0)
+        
+        # Storage graph
+        storage_graph = self.build_storage_graph()
+        box.pack_start(storage_graph, True, True, 16)
+        
+        # Non-disposable toggle
+        non_disposable_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        non_disposable_box.set_margin_top(16)
+        
+        non_disposable_label = Gtk.Label(label="Non-disposable mode")
+        non_disposable_label.set_halign(Gtk.Align.START)
+        non_disposable_box.pack_start(non_disposable_label, False, False, 0)
+        
+        non_disposable_switch = Gtk.Switch()
+        non_disposable_switch.set_active(self.is_non_disposable())
+        non_disposable_switch.connect("notify::active", self.toggle_non_disposable)
+        non_disposable_box.pack_start(non_disposable_switch, False, False, 0)
+        
+        box.pack_start(non_disposable_box, False, False, 0)
+        
+        warning_label = Gtk.Label()
+        warning_label.set_markup('<span foreground="red" size="small">Warning: Non-disposable mode will keep files on disk. Only enable if you understand the risks.</span>')
+        warning_label.set_line_wrap(True)
+        warning_label.set_halign(Gtk.Align.START)
+        warning_label.set_max_width_chars(70)
+        box.pack_start(warning_label, False, False, 8)
+        
+        return box
+
+    def get_storage_info(self):
+        try:
+            import shutil
+            total, used, free = shutil.disk_usage("/")
+            used_percent = (used / total) * 100
+            return f"Session storage: {self.human_size(used)} used of {self.human_size(total)} ({used_percent:.1f}%)"
+        except Exception:
+            return "Session storage: unavailable"
+
+    def human_size(self, size):
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < 1024 or unit == "GB":
+                return f"{size:.1f} {unit}"
+            size /= 1024
+
+    def build_storage_graph(self):
+        try:
+            import shutil
+            total, used, free = shutil.disk_usage("/")
+            used_percent = (used / total) * 100
+        except Exception:
+            used_percent = 0
+        
+        graph = Gtk.ProgressBar()
+        graph.set_fraction(used_percent / 100)
+        graph.set_text(f"{used_percent:.1f}% used")
+        graph.set_show_text(True)
+        return graph
+
+    def is_non_disposable(self):
+        config_file = os.path.join(HOME, ".config", "lunar-os", "non-disposable")
+        return os.path.exists(config_file)
+
+    def toggle_non_disposable(self, switch, param):
+        if switch.get_active():
+            # Ask for confirmation
+            dialog = Gtk.MessageDialog(
+                message_type=Gtk.MessageType.WARNING,
+                buttons=Gtk.ButtonsType.YES_NO,
+                text="Enable Non-Disposable Mode?"
+            )
+            dialog.format_secondary_text(
+                "Non-disposable mode will keep files on disk instead of discarding them at shutdown.\n\n"
+                "This means:\n"
+                "- Files will persist across reboots\n"
+                "- Data may be left on the system\n"
+                "- Privacy benefits of disposable mode are lost\n\n"
+                "Only enable this if you understand the risks and want persistent storage.\n\n"
+                "Are you sure you want to continue?"
+            )
+            response = dialog.run()
+            dialog.destroy()
+            
+            if response == Gtk.ResponseType.YES:
+                config_dir = os.path.join(HOME, ".config", "lunar-os")
+                os.makedirs(config_dir, exist_ok=True)
+                config_file = os.path.join(config_dir, "non-disposable")
+                with open(config_file, "w") as f:
+                    f.write("enabled")
+            else:
+                switch.set_active(False)
+        else:
+            config_file = os.path.join(HOME, ".config", "lunar-os", "non-disposable")
+            if os.path.exists(config_file):
+                os.remove(config_file)
 
 
 def main():
