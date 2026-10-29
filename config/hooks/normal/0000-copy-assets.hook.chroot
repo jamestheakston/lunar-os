@@ -23,10 +23,18 @@ if [ -f "$ASSETS/desktop/welcome-icon.png" ]; then
     install -m 644 "$ASSETS/desktop/welcome-icon.png" "$APP_DIR/welcome-icon.png"
 fi
 
+if [ -f "$ASSETS/desktop/lunar-store-icon.png" ]; then
+    install -m 644 "$ASSETS/desktop/lunar-store-icon.png" "$APP_DIR/lunar-store-icon.png"
+fi
+
 for size in 16 32 48 64 128 256 512; do
     logo="$ASSETS/desktop/logo-${size}x${size}.png"
     if [ -f "$logo" ]; then
         install -D -m 644 "$logo" "$ICON_DIR/${size}x${size}/apps/lunar-os.png"
+    fi
+    store_icon="$ASSETS/desktop/lunar-store-icon-${size}x${size}.png"
+    if [ -f "$store_icon" ]; then
+        install -D -m 644 "$store_icon" "$ICON_DIR/${size}x${size}/apps/lunar-store.png"
     fi
 done
 

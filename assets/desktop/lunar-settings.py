@@ -27,6 +27,16 @@ LAUNCHER_PAGES = (
     ("input", "Keyboard and Mouse", "Keyboard layout, repeat rate, pointer speed and acceleration.", "Open keyboard and mouse settings", ("lxinput",)),
     ("startup", "Startup Applications", "Choose which applications start with the desktop.", "Open session settings", ("lxsession-edit",)),
     ("themes", "Advanced Themes", "Pick GTK themes, icons, cursors and fonts.", "Open appearance tool", ("lxappearance",)),
+    ("bluetooth", "Bluetooth", "Manage Bluetooth devices and connections.", "Open Bluetooth settings", ("blueman-manager",)),
+    ("power", "Power Management", "Configure power saving, battery, and sleep settings.", "Open power settings", ("xfce4-power-manager-settings",)),
+    ("accessibility", "Accessibility", "Screen reader, magnifier, and accessibility features.", "Open accessibility settings", ("onboard",)),
+    ("datetime", "Date & Time", "Set time zone, date, and time configuration.", "Open date and time settings", ("lxappearance",)),
+    ("firewall", "Firewall", "Configure firewall rules and security settings.", "Open firewall settings", ("gufw",)),
+    ("users", "Users", "Manage user accounts and permissions.", "Open user settings", ("lxsession-edit",)),
+    ("printers", "Printers", "Add and configure printers.", "Open printer settings", ("system-config-printer",)),
+    ("disks", "Disks", "Manage disk partitions and storage.", "Open disk utility", ("gparted",)),
+    ("system", "System Info", "View system information and hardware details.", "Open system info", ("hardinfo",)),
+    ("terminal", "Terminal", "Configure terminal emulator settings.", "Open terminal settings", ("lxterminal",)),
 )
 
 CHANGELOG = """Version 1.0.0 (2026)
@@ -143,10 +153,9 @@ class SettingsWindow(Gtk.Window):
         layout.pack_start(self.stack, True, True, 0)
 
         self.add_page("appearance", "Appearance", self.build_appearance())
-        for name, title, description, button, command in LAUNCHER_PAGES[:5]:
+        for name, title, description, button, command in LAUNCHER_PAGES:
             self.add_page(name, title, self.build_launcher(title, description, button, command))
         self.add_page("session", "Session", self.build_session())
-        self.add_page(LAUNCHER_PAGES[5][0], LAUNCHER_PAGES[5][1], self.build_launcher(*LAUNCHER_PAGES[5][1:4], LAUNCHER_PAGES[5][4]))
         self.add_page("about", "About", self.build_about())
         self.show_all()
 

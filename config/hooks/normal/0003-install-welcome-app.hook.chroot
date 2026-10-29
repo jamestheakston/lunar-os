@@ -46,7 +46,7 @@ Type=Application
 Name=Lunar Store
 Comment=Install applications and packages
 Exec=/usr/share/lunar-os/lunar-store.py
-Icon=system-software-install
+Icon=lunar-store
 Terminal=false
 Categories=System;PackageManager;
 ENTRY

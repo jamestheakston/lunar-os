@@ -53,6 +53,11 @@ lxinput
 lxsession-edit
 lxpolkit
 pavucontrol
+blueman
+xfce4-power-manager
+gufw
+system-config-printer
+hardinfo
 
 # Hardware firmware
 firmware-linux-free
