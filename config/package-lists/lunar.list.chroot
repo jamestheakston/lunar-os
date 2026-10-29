@@ -45,6 +45,7 @@ firefox-esr
 galculator
 gpicview
 lxtask
+torbrowser-launcher
 
 # Settings tools
 lxrandr
@@ -65,6 +66,9 @@ firmware-amd-graphics
 # Network, Bluetooth and sound
 network-manager
 network-manager-gnome
+network-manager-openvpn
+network-manager-openvpn-gnome
+openvpn
 bluez
 pulseaudio
 pulseaudio-utils
