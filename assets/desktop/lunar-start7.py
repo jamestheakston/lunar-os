@@ -105,7 +105,7 @@ class StartMenu(Gtk.Window):
     def __init__(self):
         super().__init__(type=Gtk.WindowType.POPUP)
         self.set_default_size(600, 450)
-        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_position(Gtk.WindowPosition.MOUSE)
         self.set_decorated(False)
         self.set_type_hint(Gdk.WindowTypeHint.MENU)
         self.get_style_context().add_class("lunar-start7")

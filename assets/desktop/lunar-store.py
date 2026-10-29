@@ -10,59 +10,59 @@ from gi.repository import Gdk, GLib, Gtk
 HOME = os.path.expanduser("~")
 
 CSS = b"""
-window.lunar-store {
+window {
     background-color: #f5f5f5;
 }
-window.lunar-store .sidebar {
+.sidebar {
     background-color: #e8e8e8;
     border-right: 1px solid #ccc;
 }
-window.lunar-store .category-item {
+.category-item {
     padding: 12px 16px;
     border-bottom: 1px solid #ddd;
 }
-window.lunar-store .category-item:hover {
+.category-item:hover {
     background-color: #d0d0d0;
 }
-window.lunar-store .category-item.active {
+.category-item.active {
     background-color: #a8d0f0;
 }
-window.lunar-store .app-item {
+.app-item {
     background-color: #ffffff;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 12px;
     margin: 8px;
 }
-window.lunar-store .app-item:hover {
+.app-item:hover {
     background-color: #f8f8ff;
     border-color: #a8d0f0;
 }
-window.lunar-store .app-name {
+.app-name {
     font-size: 14px;
     font-weight: bold;
 }
-window.lunar-store .app-description {
+.app-description {
     font-size: 12px;
     color: #666;
 }
-window.lunar-store .install-button {
+.install-button {
     background-color: #6c5ce7;
     color: white;
     border: none;
     border-radius: 4px;
     padding: 8px 16px;
 }
-window.lunar-store .install-button:hover {
+.install-button:hover {
     background-color: #7d6ff0;
 }
-window.lunar-store .install-button.installed {
+.install-button.installed {
     background-color: #27ae60;
 }
-window.lunar-store .progress-bar {
+.progress-bar {
     margin-top: 8px;
 }
-window.lunar-store .terminal-toggle {
+.terminal-toggle {
     margin-top: 8px;
 }
 """

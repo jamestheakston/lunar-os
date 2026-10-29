@@ -213,6 +213,7 @@ class SettingsWindow(Gtk.Window):
         cat_label.set_halign(Gtk.Align.START)
         cat_label.set_margin_top(16)
         cat_label.set_margin_bottom(8)
+        cat_label.get_style_context().add_class("category-label")
         parent.pack_start(cat_label, False, False, 0)
         
         # Icon grid
@@ -468,6 +469,10 @@ window {
 .header {
     background-color: #f5f5f7;
     border-bottom: 1px solid #d1d1d6;
+    padding: 16px;
+}
+.header label {
+    color: #000000;
 }
 .icon-button {
     background-color: #f5f5f7;
@@ -477,13 +482,20 @@ window {
 .icon-button:hover {
     background-color: #e8e8ea;
 }
+.icon-button label {
+    color: #000000;
+}
 .icon-name {
     font-size: 13px;
     font-weight: 500;
+    color: #000000;
 }
 .icon-desc {
     font-size: 11px;
     color: #86868b;
+}
+.category-label {
+    color: #000000;
 }
 """
     provider = Gtk.CssProvider()
