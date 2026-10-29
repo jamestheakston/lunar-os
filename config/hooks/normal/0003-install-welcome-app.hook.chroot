@@ -50,3 +50,15 @@ Icon=lunar-store
 Terminal=false
 Categories=System;PackageManager;
 ENTRY
+
+cat > /usr/share/applications/lunar-metadata.desktop << 'ENTRY'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Lunar Metadata Stripper
+Comment=Remove hidden metadata from files
+Exec=/usr/share/lunar-os/lunar-metadata.py
+Icon=edit-clear
+Terminal=false
+Categories=Utility;Security;
+ENTRY

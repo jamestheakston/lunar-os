@@ -7,7 +7,7 @@ from datetime import datetime
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 HOME = os.path.expanduser("~")
 GTK3_SETTINGS = os.path.join(HOME, ".config", "gtk-3.0", "settings.ini")
@@ -20,30 +20,37 @@ CURRENT_YEAR = datetime.now().year
 AUTHOR = "James Theakston"
 LICENSE = "MIT"
 
-LAUNCHER_PAGES = (
-    ("display", "Display", "Change resolution, orientation and monitor layout.", "Open display settings", ("lxrandr",)),
-    ("sound", "Sound", "Choose output and input devices and adjust volume.", "Open sound settings", ("pavucontrol",)),
-    ("network", "Network", "Manage wired, wireless and VPN connections.", "Open network connections", ("nm-connection-editor",)),
-    ("input", "Keyboard and Mouse", "Keyboard layout, repeat rate, pointer speed and acceleration.", "Open keyboard and mouse settings", ("lxinput",)),
-    ("startup", "Startup Applications", "Choose which applications start with the desktop.", "Open session settings", ("lxsession-edit",)),
-    ("themes", "Advanced Themes", "Pick GTK themes, icons, cursors and fonts.", "Open appearance tool", ("lxappearance",)),
-    ("bluetooth", "Bluetooth", "Manage Bluetooth devices and connections.", "Open Bluetooth settings", ("blueman-manager",)),
-    ("power", "Power Management", "Configure power saving, battery, and sleep settings.", "Open power settings", ("xfce4-power-manager-settings",)),
-    ("accessibility", "Accessibility", "Screen reader, magnifier, and accessibility features.", "Open accessibility settings", ("onboard",)),
-    ("datetime", "Date & Time", "Set time zone, date, and time configuration.", "Open date and time settings", ("lxappearance",)),
-    ("firewall", "Firewall", "Configure firewall rules and security settings.", "Open firewall settings", ("gufw",)),
-    ("users", "Users", "Manage user accounts and permissions.", "Open user settings", ("lxsession-edit",)),
-    ("printers", "Printers", "Add and configure printers.", "Open printer settings", ("system-config-printer",)),
-    ("disks", "Disks", "Manage disk partitions and storage.", "Open disk utility", ("gparted",)),
-    ("system", "System Info", "View system information and hardware details.", "Open system info", ("hardinfo",)),
-    ("terminal", "Terminal", "Configure terminal emulator settings.", "Open terminal settings", ("lxterminal",)),
-)
+SETTINGS_GRID = [
+    # General
+    {"name": "Appearance", "icon": "preferences-desktop-theme", "page": "appearance", "desc": "Dark mode, wallpaper"},
+    {"name": "Display", "icon": "preferences-desktop-display", "page": "display", "desc": "Resolution, monitors"},
+    {"name": "Sound", "icon": "preferences-desktop-sound", "page": "sound", "desc": "Volume, devices"},
+    {"name": "Network", "icon": "preferences-desktop-network", "page": "network", "desc": "Wi-Fi, VPN"},
+    
+    # Internet
+    {"name": "Bluetooth", "icon": "bluetooth", "page": "bluetooth", "desc": "Devices, connections"},
+    {"name": "Users", "icon": "system-users", "page": "users", "desc": "Accounts, permissions"},
+    
+    # Hardware
+    {"name": "Keyboard", "icon": "input-keyboard", "page": "input", "desc": "Layout, repeat rate"},
+    {"name": "Mouse", "icon": "input-mouse", "page": "input", "desc": "Speed, acceleration"},
+    {"name": "Printers", "icon": "printer", "page": "printers", "desc": "Add, configure"},
+    {"name": "Power", "icon": "battery", "page": "power", "desc": "Battery, sleep"},
+    
+    # System
+    {"name": "Startup", "icon": "system-run", "page": "startup", "desc": "Autostart apps"},
+    {"name": "Themes", "icon": "preferences-desktop-wallpaper", "page": "themes", "desc": "GTK, icons, fonts"},
+    {"name": "Firewall", "icon": "security-high", "page": "firewall", "desc": "Security rules"},
+    {"name": "Disks", "icon": "drive-harddisk", "page": "disks", "desc": "Partitions, storage"},
+    {"name": "System Info", "icon": "computer", "page": "system", "desc": "Hardware details"},
+    {"name": "About", "icon": "help-about", "page": "about", "desc": "Version, license"},
+]
 
 CHANGELOG = """Version 1.0.0 (2026)
 - Initial release of Lunar OS Home Edition
 - Disposable session architecture with RAM-based storage
 - LXDE desktop environment with Lunar OS branding
-- Built-in VPN support (OpenVPN)
+- Built-in VPN support (WireGuard)
 - Browser selection (Firefox ESR, Tor Browser)
 - Custom shutdown and restart dialogs
 - Welcome window with session information
@@ -67,7 +74,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """.format(year=CURRENT_YEAR, author=AUTHOR)
@@ -135,62 +142,167 @@ def apply_theme(dark):
 class SettingsWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Lunar Settings")
-        self.set_default_size(760, 500)
+        self.set_default_size(900, 650)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("preferences-system")
         self.connect("destroy", Gtk.main_quit)
 
-        layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.add(layout)
+        # Main container
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(main_box)
 
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        sidebar = Gtk.StackSidebar()
-        sidebar.set_stack(self.stack)
-        sidebar.set_size_request(210, -1)
-        layout.pack_start(sidebar, False, False, 0)
-        layout.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
-        layout.pack_start(self.stack, True, True, 0)
+        # Header with user profile
+        header = self.build_header()
+        main_box.pack_start(header, False, False, 0)
 
-        self.add_page("appearance", "Appearance", self.build_appearance())
-        for name, title, description, button, command in LAUNCHER_PAGES:
-            self.add_page(name, title, self.build_launcher(title, description, button, command))
-        self.add_page("session", "Session", self.build_session())
-        self.add_page("about", "About", self.build_about())
+        # Settings grid
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        
+        grid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        grid_box.set_border_width(20)
+        
+        # Add section headers and icon grids
+        self.add_category(grid_box, "General", 
+            [s for s in SETTINGS_GRID if s["page"] in ["appearance", "display", "sound", "network"]])
+        self.add_category(grid_box, "Internet", 
+            [s for s in SETTINGS_GRID if s["page"] in ["bluetooth", "users"]])
+        self.add_category(grid_box, "Hardware", 
+            [s for s in SETTINGS_GRID if s["page"] in ["input", "printers", "power"]])
+        self.add_category(grid_box, "System", 
+            [s for s in SETTINGS_GRID if s["page"] in ["startup", "themes", "firewall", "disks", "system", "about"]])
+        
+        scrolled.add(grid_box)
+        main_box.pack_start(scrolled, True, True, 0)
+
         self.show_all()
-
-    def add_page(self, name, title, widget):
-        self.stack.add_titled(widget, name, title)
-
-    def page(self, title):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        box.set_border_width(28)
-        heading = Gtk.Label()
-        heading.set_markup(f'<span size="x-large" weight="bold">{title}</span>')
-        heading.set_halign(Gtk.Align.START)
-        box.pack_start(heading, False, False, 0)
-        return box
-
-    def text(self, content):
-        label = Gtk.Label(label=content)
-        label.set_line_wrap(True)
-        label.set_halign(Gtk.Align.START)
-        label.set_xalign(0)
-        label.set_max_width_chars(70)
-        return label
-
-    def build_launcher(self, title, description, button_label, command):
-        box = self.page(title)
-        box.pack_start(self.text(description), False, False, 0)
-        button = Gtk.Button(label=button_label)
-        button.set_halign(Gtk.Align.START)
-        button.connect("clicked", lambda _b: launch(*command))
-        box.pack_start(button, False, False, 0)
-        return box
-
-    def build_appearance(self):
-        box = self.page("Appearance")
-
+    
+    def build_header(self):
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        header.set_border_width(20)
+        header.get_style_context().add_class("header")
+        
+        # User avatar
+        avatar = Gtk.Image.new_from_icon_name("avatar-default", Gtk.IconSize.DIALOG)
+        avatar.set_pixel_size(64)
+        header.pack_start(avatar, False, False, 0)
+        
+        # User info
+        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        
+        username = os.environ.get("USER", "Lunar User")
+        hostname = os.environ.get("HOSTNAME", "lunar-os")
+        
+        name_label = Gtk.Label()
+        name_label.set_markup(f'<span size="x-large" weight="bold">{username}</span>')
+        name_label.set_halign(Gtk.Align.START)
+        info_box.pack_start(name_label, False, False, 0)
+        
+        host_label = Gtk.Label(label=f"{hostname} • Lunar OS Home Edition")
+        host_label.set_halign(Gtk.Align.START)
+        info_box.pack_start(host_label, False, False, 0)
+        
+        header.pack_start(info_box, True, True, 0)
+        
+        return header
+    
+    def add_category(self, parent, title, items):
+        # Category label
+        cat_label = Gtk.Label()
+        cat_label.set_markup(f'<span weight="bold" size="large">{title}</span>')
+        cat_label.set_halign(Gtk.Align.START)
+        cat_label.set_margin_top(16)
+        cat_label.set_margin_bottom(8)
+        parent.pack_start(cat_label, False, False, 0)
+        
+        # Icon grid
+        grid = Gtk.Grid()
+        grid.set_column_spacing(20)
+        grid.set_row_spacing(20)
+        grid.set_margin_bottom(24)
+        
+        col = 0
+        row = 0
+        for item in items:
+            icon_button = self.create_icon_button(item)
+            grid.attach(icon_button, col, row, 1, 1)
+            col += 1
+            if col >= 4:
+                col = 0
+                row += 1
+        
+        parent.pack_start(grid, False, False, 0)
+    
+    def create_icon_button(self, item):
+        button = Gtk.Button()
+        button.set_relief(Gtk.ReliefStyle.NONE)
+        button.get_style_context().add_class("icon-button")
+        
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+        
+        # Icon
+        icon = Gtk.Image.new_from_icon_name(item["icon"], Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(48)
+        box.pack_start(icon, False, False, 0)
+        
+        # Name
+        name_label = Gtk.Label(label=item["name"])
+        name_label.get_style_context().add_class("icon-name")
+        box.pack_start(name_label, False, False, 0)
+        
+        # Description
+        desc_label = Gtk.Label(label=item["desc"])
+        desc_label.get_style_context().add_class("icon-desc")
+        desc_label.set_max_width_chars(15)
+        desc_label.set_ellipsize(Pango.EllipsizeMode.END)
+        box.pack_start(desc_label, False, False, 0)
+        
+        button.add(box)
+        button.connect("clicked", lambda b: self.open_setting(item))
+        
+        return button
+    
+    def open_setting(self, item):
+        page = item["page"]
+        
+        if page == "appearance":
+            self.show_appearance_dialog()
+        elif page == "about":
+            self.show_about_dialog()
+        elif page == "session":
+            self.show_session_dialog()
+        else:
+            # Launch external tool
+            commands = {
+                "display": ("lxrandr",),
+                "sound": ("pavucontrol",),
+                "network": ("nm-connection-editor",),
+                "input": ("lxinput",),
+                "startup": ("lxsession-edit",),
+                "themes": ("lxappearance",),
+                "bluetooth": ("blueman-manager",),
+                "power": ("xfce4-power-manager-settings",),
+                "firewall": ("gufw",),
+                "printers": ("system-config-printer",),
+                "disks": ("gparted",),
+                "system": ("hardinfo",),
+            }
+            if page in commands:
+                launch(*commands[page])
+    
+    def show_appearance_dialog(self):
+        dialog = Gtk.Dialog(title="Appearance", parent=self, flags=0)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        
+        box = dialog.get_content_area()
+        box.set_border_width(20)
+        box.set_spacing(12)
+        
+        # Dark mode toggle
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         row.pack_start(Gtk.Label(label="Dark mode"), False, False, 0)
         switch = Gtk.Switch()
@@ -198,85 +310,26 @@ class SettingsWindow(Gtk.Window):
         switch.connect("notify::active", lambda s, _p: apply_theme(s.get_active()))
         row.pack_start(switch, False, False, 0)
         box.pack_start(row, False, False, 0)
-        box.pack_start(
-            self.text("The theme applies to applications you open from now on. Reopen running applications to update them."),
-            False, False, 0,
-        )
-
+        
+        # Wallpaper button
         wallpaper = Gtk.Button(label="Choose wallpaper\u2026")
-        wallpaper.set_halign(Gtk.Align.START)
         wallpaper.connect("clicked", self.choose_wallpaper)
-        box.pack_start(wallpaper, False, False, 8)
-        return box
-
-    def choose_wallpaper(self, _button):
-        dialog = Gtk.FileChooserDialog(
-            title="Choose wallpaper",
-            parent=self,
-            action=Gtk.FileChooserAction.OPEN,
-        )
-        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Apply", Gtk.ResponseType.OK)
-        images = Gtk.FileFilter()
-        images.set_name("Images")
-        images.add_pixbuf_formats()
-        dialog.add_filter(images)
-        dialog.set_current_folder("/usr/share/backgrounds/lunar-os")
-        if dialog.run() == Gtk.ResponseType.OK:
-            launch("pcmanfm", "--set-wallpaper=" + dialog.get_filename(), "--wallpaper-mode=crop")
-        dialog.destroy()
-
-    def build_session(self):
-        box = self.page("Session")
-        box.pack_start(
-            self.text(
-                "This is a temporary session. Files, settings and downloads live in memory and are "
-                "discarded when the computer shuts down or restarts. Logging out keeps them until then."
-            ),
-            False, False, 0,
-        )
+        box.pack_start(wallpaper, False, False, 0)
         
-        # Storage button with chevron
-        storage_button = Gtk.Button(label="Storage \u203A")
-        storage_button.set_halign(Gtk.Align.START)
-        storage_button.connect("clicked", self.show_storage_page)
-        box.pack_start(storage_button, False, False, 8)
-        
-        for label, command in (
-            ("Shut Down and Discard Session\u2026", "/usr/local/bin/lunar-shutdown"),
-            ("Restart and Start Fresh\u2026", "/usr/local/bin/lunar-restart"),
-            ("Log Out\u2026", "/usr/local/bin/lunar-logout"),
-        ):
-            button = Gtk.Button(label=label)
-            button.set_halign(Gtk.Align.START)
-            button.connect("clicked", lambda _b, c=command: launch(c))
-            box.pack_start(button, False, False, 0)
-        files = Gtk.Button(label="Open Temporary Files")
-        files.set_halign(Gtk.Align.START)
-        files.connect("clicked", lambda _b: launch("pcmanfm", "/tmp"))
-        box.pack_start(files, False, False, 8)
-        return box
-
-    def check_updates(self, button):
-        dialog = Gtk.MessageDialog(
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.CLOSE,
-            text="Check for Updates",
-        )
-        dialog.format_secondary_text(
-            "To check for the latest version of Lunar OS Home Edition, please visit the GitHub repository:\n\n"
-            "https://github.com/jamestheakston/lunar-os\n\n"
-            "The built-in update check feature is not currently implemented. "
-            "Please check the repository manually for new releases and changes."
-        )
+        dialog.show_all()
         dialog.run()
         dialog.destroy()
-
-    def build_about(self):
-        box = self.page("About Lunar OS")
+    
+    def show_about_dialog(self):
+        dialog = Gtk.Dialog(title="About Lunar OS", parent=self, flags=0)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        
+        box = dialog.get_content_area()
+        box.set_border_width(20)
+        box.set_spacing(16)
         
         # Header with logo and title
         header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
-        header_box.set_margin_bottom(16)
         
         logo_path = "/usr/share/lunar-os/logo-128x128.png"
         if os.path.exists(logo_path):
@@ -295,22 +348,15 @@ class SettingsWindow(Gtk.Window):
         
         copyright_label = Gtk.Label(label=f"\u00A9 {CURRENT_YEAR} {AUTHOR}")
         copyright_label.set_halign(Gtk.Align.START)
-        copyright_label.get_style_context().add_class("note")
         title_box.pack_start(copyright_label, False, False, 0)
         
         header_box.pack_start(title_box, True, True, 0)
         box.pack_start(header_box, False, False, 0)
         
         # Version info
-        version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         version_label = Gtk.Label(label="You are updated to the latest version of LunarOS Home")
         version_label.set_halign(Gtk.Align.START)
-        version_box.pack_start(version_label, False, False, 0)
-        
-        check_button = Gtk.Button(label="Check for Updates")
-        check_button.connect("clicked", self.check_updates)
-        version_box.pack_start(check_button, False, False, 0)
-        box.pack_start(version_box, False, False, 8)
+        box.pack_start(version_label, False, False, 8)
         
         # License button
         license_button = Gtk.Button(label="View License")
@@ -342,8 +388,10 @@ class SettingsWindow(Gtk.Window):
         scrolled.add(changelog_text)
         box.pack_start(scrolled, True, True, 0)
         
-        return box
-
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+    
     def show_license(self, button):
         dialog = Gtk.MessageDialog(
             message_type=Gtk.MessageType.INFO,
@@ -366,129 +414,84 @@ class SettingsWindow(Gtk.Window):
         dialog.show_all()
         dialog.run()
         dialog.destroy()
-
-    def show_storage_page(self, button):
-        storage_page = self.build_storage()
-        storage_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        storage_box.pack_start(storage_page, True, True, 0)
+    
+    def show_session_dialog(self):
+        dialog = Gtk.Dialog(title="Session", parent=self, flags=0)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
         
-        dialog = Gtk.Dialog(
-            title="Storage",
-            parent=self,
-            flags=0,
-        )
-        dialog.add_button("Back", Gtk.ResponseType.CLOSE)
-        dialog.get_content_area().pack_start(storage_box, True, True, 0)
-        dialog.set_default_size(600, 500)
+        box = dialog.get_content_area()
+        box.set_border_width(20)
+        box.set_spacing(12)
+        
+        box.pack_start(Gtk.Label(label="This is a temporary session. Files live in memory and are discarded at shutdown."), False, False, 0)
+        
+        for label, command in (
+            ("Shut Down\u2026", "/usr/local/bin/lunar-shutdown"),
+            ("Restart\u2026", "/usr/local/bin/lunar-restart"),
+            ("Log Out\u2026", "/usr/local/bin/lunar-logout"),
+        ):
+            button = Gtk.Button(label=label)
+            button.connect("clicked", lambda _b, c=command: launch(c))
+            box.pack_start(button, False, False, 0)
+        
+        files = Gtk.Button(label="Open Temporary Files")
+        files.connect("clicked", lambda _b: launch("pcmanfm", "/tmp"))
+        box.pack_start(files, False, False, 8)
+        
         dialog.show_all()
         dialog.run()
         dialog.destroy()
-
-    def build_storage(self):
-        box = self.page("Storage")
-        
-        # Storage info
-        storage_info = self.get_storage_info()
-        info_label = Gtk.Label(label=storage_info)
-        info_label.set_halign(Gtk.Align.START)
-        box.pack_start(info_label, False, False, 0)
-        
-        # Storage graph
-        storage_graph = self.build_storage_graph()
-        box.pack_start(storage_graph, True, True, 16)
-        
-        # Non-disposable toggle
-        non_disposable_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        non_disposable_box.set_margin_top(16)
-        
-        non_disposable_label = Gtk.Label(label="Non-disposable mode")
-        non_disposable_label.set_halign(Gtk.Align.START)
-        non_disposable_box.pack_start(non_disposable_label, False, False, 0)
-        
-        non_disposable_switch = Gtk.Switch()
-        non_disposable_switch.set_active(self.is_non_disposable())
-        non_disposable_switch.connect("notify::active", self.toggle_non_disposable)
-        non_disposable_box.pack_start(non_disposable_switch, False, False, 0)
-        
-        box.pack_start(non_disposable_box, False, False, 0)
-        
-        warning_label = Gtk.Label()
-        warning_label.set_markup('<span foreground="red" size="small">Warning: Non-disposable mode will keep files on disk. Only enable if you understand the risks.</span>')
-        warning_label.set_line_wrap(True)
-        warning_label.set_halign(Gtk.Align.START)
-        warning_label.set_max_width_chars(70)
-        box.pack_start(warning_label, False, False, 8)
-        
-        return box
-
-    def get_storage_info(self):
-        try:
-            import shutil
-            total, used, free = shutil.disk_usage("/")
-            used_percent = (used / total) * 100
-            return f"Session storage: {self.human_size(used)} used of {self.human_size(total)} ({used_percent:.1f}%)"
-        except Exception:
-            return "Session storage: unavailable"
-
-    def human_size(self, size):
-        for unit in ("B", "KB", "MB", "GB"):
-            if size < 1024 or unit == "GB":
-                return f"{size:.1f} {unit}"
-            size /= 1024
-
-    def build_storage_graph(self):
-        try:
-            import shutil
-            total, used, free = shutil.disk_usage("/")
-            used_percent = (used / total) * 100
-        except Exception:
-            used_percent = 0
-        
-        graph = Gtk.ProgressBar()
-        graph.set_fraction(used_percent / 100)
-        graph.set_text(f"{used_percent:.1f}% used")
-        graph.set_show_text(True)
-        return graph
-
-    def is_non_disposable(self):
-        config_file = os.path.join(HOME, ".config", "lunar-os", "non-disposable")
-        return os.path.exists(config_file)
-
-    def toggle_non_disposable(self, switch, param):
-        if switch.get_active():
-            # Ask for confirmation
-            dialog = Gtk.MessageDialog(
-                message_type=Gtk.MessageType.WARNING,
-                buttons=Gtk.ButtonsType.YES_NO,
-                text="Enable Non-Disposable Mode?"
-            )
-            dialog.format_secondary_text(
-                "Non-disposable mode will keep files on disk instead of discarding them at shutdown.\n\n"
-                "This means:\n"
-                "- Files will persist across reboots\n"
-                "- Data may be left on the system\n"
-                "- Privacy benefits of disposable mode are lost\n\n"
-                "Only enable this if you understand the risks and want persistent storage.\n\n"
-                "Are you sure you want to continue?"
-            )
-            response = dialog.run()
-            dialog.destroy()
-            
-            if response == Gtk.ResponseType.YES:
-                config_dir = os.path.join(HOME, ".config", "lunar-os")
-                os.makedirs(config_dir, exist_ok=True)
-                config_file = os.path.join(config_dir, "non-disposable")
-                with open(config_file, "w") as f:
-                    f.write("enabled")
-            else:
-                switch.set_active(False)
-        else:
-            config_file = os.path.join(HOME, ".config", "lunar-os", "non-disposable")
-            if os.path.exists(config_file):
-                os.remove(config_file)
+    
+    def choose_wallpaper(self, _button):
+        dialog = Gtk.FileChooserDialog(
+            title="Choose wallpaper",
+            parent=self,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Apply", Gtk.ResponseType.OK)
+        images = Gtk.FileFilter()
+        images.set_name("Images")
+        images.add_pixbuf_formats()
+        dialog.add_filter(images)
+        dialog.set_current_folder("/usr/share/backgrounds/lunar-os")
+        if dialog.run() == Gtk.ResponseType.OK:
+            launch("pcmanfm", "--set-wallpaper=" + dialog.get_filename(), "--wallpaper-mode=crop")
+        dialog.destroy()
 
 
 def main():
+    # Apply macOS-like styling
+    CSS = b"""
+window {
+    background-color: #ffffff;
+}
+.header {
+    background-color: #f5f5f7;
+    border-bottom: 1px solid #d1d1d6;
+}
+.icon-button {
+    background-color: #f5f5f7;
+    border-radius: 12px;
+    padding: 16px;
+}
+.icon-button:hover {
+    background-color: #e8e8ea;
+}
+.icon-name {
+    font-size: 13px;
+    font-weight: 500;
+}
+.icon-desc {
+    font-size: 11px;
+    color: #86868b;
+}
+"""
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(
+        Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
+    
     SettingsWindow()
     Gtk.main()
 
