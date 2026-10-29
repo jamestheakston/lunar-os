@@ -1,13 +1,34 @@
 #!/bin/bash
 set -e
 
-RC=/etc/xdg/openbox/LXDE-rc.xml
 KEYS=/tmp/lunar-assets/desktop/openbox-keybinds.xml
+RC=""
 
-if [ -f "$RC" ]; then
-    sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Lunar</name>|' "$RC"
-    if [ -f "$KEYS" ] && ! grep -q 'lunar-shutdown' "$RC"; then
-        awk -v keys="$KEYS" '/<\/keyboard>/ { while ((getline line < keys) > 0) print line } { print }' "$RC" > "$RC.new"
-        mv "$RC.new" "$RC"
+for candidate in /etc/xdg/openbox/LXDE/rc.xml /etc/xdg/openbox/LXDE-rc.xml; do
+    if [ -f "$candidate" ]; then
+        RC="$candidate"
+        break
     fi
+done
+
+if [ -z "$RC" ]; then
+    RC="$(find /etc/xdg/openbox -name 'rc.xml' -o -name '*-rc.xml' 2> /dev/null | head -n 1)"
 fi
+
+if [ -z "$RC" ]; then
+    echo "ERROR: no Openbox rc.xml found under /etc/xdg/openbox"
+    ls -R /etc/xdg/openbox 2>&1 || true
+    exit 1
+fi
+
+echo "Configuring Openbox using $RC"
+
+sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Lunar</name>|' "$RC"
+
+if ! grep -q 'lunar-shutdown' "$RC"; then
+    awk -v keys="$KEYS" '/<\/keyboard>/ { while ((getline line < keys) > 0) print line } { print }' "$RC" > "$RC.new"
+    mv "$RC.new" "$RC"
+fi
+
+grep -q '<name>Lunar</name>' "$RC"
+grep -q 'lunar-shutdown' "$RC"

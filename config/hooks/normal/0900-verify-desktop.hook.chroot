@@ -42,14 +42,34 @@ for script in welcome shutdown-dialog lunar-settings lunar-session-monitor; do
     fi
 done
 
-if ! grep -q '<name>Lunar</name>' /etc/xdg/openbox/LXDE-rc.xml; then
-    echo "ERROR: Lunar Openbox theme is not active"
-    missing=1
+RC=""
+for candidate in /etc/xdg/openbox/LXDE/rc.xml /etc/xdg/openbox/LXDE-rc.xml; do
+    if [ -f "$candidate" ]; then
+        RC="$candidate"
+        break
+    fi
+done
+
+if [ -z "$RC" ]; then
+    RC="$(find /etc/xdg/openbox -name 'rc.xml' -o -name '*-rc.xml' 2> /dev/null | head -n 1)"
 fi
 
-if ! grep -q 'lunar-shutdown' /etc/xdg/openbox/LXDE-rc.xml; then
-    echo "ERROR: Lunar keyboard shortcuts are not installed"
+if [ -z "$RC" ]; then
+    echo "ERROR: no Openbox rc.xml found"
     missing=1
+else
+    if ! grep -q '<name>Lunar</name>' "$RC"; then
+        echo "ERROR: Lunar Openbox theme is not active in $RC"
+        missing=1
+    fi
+    if ! grep -q 'lunar-shutdown' "$RC"; then
+        echo "ERROR: Lunar keyboard shortcuts are not installed in $RC"
+        missing=1
+    fi
+fi
+
+if ! grep -q 'Adwaita-dark' /etc/xdg/lxsession/LXDE/desktop.conf 2> /dev/null; then
+    echo "WARNING: dark theme not set in /etc/xdg/lxsession/LXDE/desktop.conf"
 fi
 
 exit "$missing"

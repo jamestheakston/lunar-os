@@ -27,7 +27,9 @@ import configparser
 import os
 
 path = "/etc/xdg/lxsession/LXDE/desktop.conf"
-if os.path.exists(path):
+if not os.path.exists(path):
+    print("WARNING: " + path + " not found, GTK theme defaults not set")
+else:
     conf = configparser.RawConfigParser(interpolation=None)
     conf.optionxform = str
     conf.read(path)
