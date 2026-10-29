@@ -1,10 +1,20 @@
 #!/bin/bash
 set -e
 
-THEME=/usr/share/plymouth/themes/lunar-os/lunar-os.plymouth
+THEME_DIR=/usr/share/plymouth/themes/lunar-os
 
-if [ -f "$THEME" ]; then
-    update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth "$THEME" 100
-    update-alternatives --set default.plymouth "$THEME"
-    update-initramfs -u
+if [ ! -f "$THEME_DIR/lunar-os.plymouth" ]; then
+    echo "ERROR: Lunar Plymouth theme is missing"
+    exit 1
 fi
+
+mkdir -p /etc/plymouth
+cat > /etc/plymouth/plymouthd.conf << 'CONF'
+[Daemon]
+Theme=lunar-os
+ShowDelay=0
+DeviceTimeout=5
+CONF
+
+plymouth-set-default-theme -R lunar-os
+plymouth-set-default-theme

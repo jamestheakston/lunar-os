@@ -20,9 +20,7 @@ ENTRY
 }
 
 make_shortcut "File Manager" system-file-manager "pcmanfm %h"
-make_shortcut "Documents" folder-documents "pcmanfm %h/Documents"
-make_shortcut "Downloads" folder-downloads "pcmanfm %h/Downloads"
-make_shortcut "Temporary Files" folder-temp "pcmanfm /tmp"
+make_shortcut "Lunar Settings" preferences-system "/usr/share/lunar-os/lunar-settings.py"
+make_shortcut "Web Browser" web-browser "firefox-esr --private-window"
 make_shortcut "Terminal" utilities-terminal "lxterminal"
-make_shortcut "Web Browser" web-browser "firefox-esr"
-make_shortcut "Settings" preferences-system "/usr/share/lunar-os/lunar-settings.py"
+make_shortcut "Temporary Files" folder-temp "pcmanfm /tmp"

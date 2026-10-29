@@ -36,7 +36,10 @@ lb config \
     --parent-mirror-bootstrap "http://deb.debian.org/debian" \
     --parent-mirror-chroot "http://deb.debian.org/debian" \
     --parent-mirror-binary "http://deb.debian.org/debian" \
-    --bootappend-live "boot=live components quiet splash" \
+    --bootappend-live "boot=live components quiet splash plymouth.use-simpledrm" \
+    --chroot-squashfs-compression-type zstd \
+    --firmware-chroot false \
+    --firmware-binary false \
     --debian-installer none \
     --binary-images iso-hybrid \
     --memtest none \

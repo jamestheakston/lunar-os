@@ -4,7 +4,21 @@ set -e
 mkdir -p /etc/systemd/system-generators /etc/systemd/system
 ln -sf /dev/null /etc/systemd/system-generators/systemd-gpt-auto-generator
 
-for unit in swap.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target; do
+for unit in \
+    swap.target \
+    hibernate.target \
+    hybrid-sleep.target \
+    suspend-then-hibernate.target \
+    NetworkManager-wait-online.service \
+    systemd-networkd-wait-online.service \
+    ModemManager.service \
+    apt-daily.service \
+    apt-daily.timer \
+    apt-daily-upgrade.service \
+    apt-daily-upgrade.timer \
+    man-db.timer \
+    e2scrub_all.timer \
+    e2scrub_reap.service; do
     ln -sf /dev/null "/etc/systemd/system/$unit"
 done
 

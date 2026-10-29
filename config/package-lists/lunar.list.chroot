@@ -15,6 +15,7 @@ pcmanfm
 lxterminal
 lightdm
 lightdm-gtk-greeter
+gir1.2-lightdm-1
 xserver-xorg
 dbus-x11
 
@@ -52,12 +53,19 @@ lxsession-edit
 lxpolkit
 pavucontrol
 
+# Hardware firmware
+firmware-linux-free
+firmware-misc-nonfree
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-brcm80211
+firmware-amd-graphics
+
 # Network, Bluetooth and sound
 network-manager
 network-manager-gnome
-modemmanager
 bluez
-bluez-firmware
 pulseaudio
 pulseaudio-utils
 alsa-utils
@@ -76,7 +84,8 @@ policykit-1
 fonts-dejavu-core
 fonts-dejavu
 fonts-liberation
-fonts-noto
+fonts-noto-core
+fonts-noto-color-emoji
 
 # Python for Lunar OS applications
 python3

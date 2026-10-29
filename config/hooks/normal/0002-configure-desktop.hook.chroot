@@ -5,7 +5,10 @@ mkdir -p /etc/lightdm/lightdm.conf.d
 
 cat > /etc/lightdm/lightdm.conf.d/50-lunar.conf << 'CONF'
 [Seat:*]
+greeter-session=lunar-greeter
 user-session=LXDE
+autologin-user=lunar
+autologin-user-timeout=0
 autologin-session=LXDE
 CONF
 
@@ -17,6 +20,22 @@ icon-theme-name=Adwaita
 font-name=Sans 10
 position=50%,center
 CONF
+
+mkdir -p /usr/share/xgreeters
+
+cat > /usr/local/bin/lunar-greeter << 'SCRIPT'
+#!/bin/bash
+/usr/share/lunar-os/lunar-greeter.py || exec lightdm-gtk-greeter
+SCRIPT
+chmod 755 /usr/local/bin/lunar-greeter
+
+cat > /usr/share/xgreeters/lunar-greeter.desktop << 'ENTRY'
+[Desktop Entry]
+Name=Lunar Greeter
+Comment=Lunar OS login button
+Exec=/usr/local/bin/lunar-greeter
+Type=Application
+ENTRY
 
 if [ -x /usr/sbin/lightdm ]; then
     echo /usr/sbin/lightdm > /etc/X11/default-display-manager

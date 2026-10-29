@@ -14,6 +14,7 @@ A disposable desktop operating system built on Debian 12 (bookworm) Live. Every 
 - Right-click desktop menu and desktop shortcuts
 - Notifications (dunst)
 - Welcome window on every boot with a "Start session" button
+- Boot goes straight to the desktop with no login screen. After logging out, a minimal screen with one Log In button appears
 - Custom shutdown dialog: Shut Down and Discard Session, Restart and Start Fresh, Log Out, Cancel
 - Lunar Settings: dark/light mode, wallpaper, and shortcuts to display, sound, network, keyboard, mouse and startup tools
 - Applications: PCManFM (files), Mousepad (text editor), LXTerminal, Firefox ESR, Galculator, GPicView, LXTask (system monitor)
@@ -78,7 +79,7 @@ Replace `/dev/sdX` with the USB device. This erases it. On Windows use Rufus in 
 - Power loss or a crash leaves the ISO unchanged, because nothing was ever committed to it.
 - Boot hardening: swap and hibernation targets and GPT swap auto-detection are disabled, the journal is kept in memory and core dumps are disabled.
 - The session status icon in the tray shows RAM and session storage use and warns when memory runs low.
-- **Shut down and restart** discard the session. **Log out** keeps session files in RAM until the next shutdown or restart, and the login screen signs you straight back in.
+- **Shut down and restart** discard the session. **Log out** keeps session files in RAM until the next shutdown or restart, and you return to a screen with a single Log In button.
 
 ## Limitations
 

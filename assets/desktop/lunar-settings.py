@@ -207,7 +207,7 @@ class SettingsWindow(Gtk.Window):
         box = self.page("About Lunar OS")
         box.pack_start(
             self.text(
-                "Lunar OS is a disposable desktop built on Debian Live. The base system is read-only and "
+                "Lunar OS is a disposable desktop. The base system is read-only and "
                 "all session changes are stored in RAM. Disposable storage reduces persistence but cannot "
                 "remove data you copied to external drives, sent over a network or that hardware retained."
             ),

@@ -33,9 +33,8 @@ ACTIONS = {
         "label": "Log Out",
         "confirm": "Log Out Now",
         "message": (
-            "Your applications close and you return to the login screen, which "
-            "signs you straight back in. Session files are kept in memory until "
-            "you shut down or restart."
+            "Your applications close and you return to a screen with a single Log In "
+            "button. Session files are kept in memory until you shut down or restart."
         ),
         "command": None,
         "destructive": False,

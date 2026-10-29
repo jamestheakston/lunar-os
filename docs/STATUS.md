@@ -37,3 +37,15 @@ The ten checks from the project brief: graphical boot, welcome window on every b
 - lxpanel plugin names and options on bookworm.
 - Whether `picom` starts in the target VM.
 - Theme changes only affect newly opened windows.
+
+## Boot speed and boot screen (2026-10-29)
+
+First real ISO booted to the desktop. Boot was slow and the Plymouth screen did not show. Changes made in response, not yet tested: zstd squashfs compression, only selected firmware packages instead of the full set, smaller font package, slow wait services masked, Plymouth installed with `plymouth-set-default-theme`, shorter device timeout and `plymouth.use-simpledrm` on the kernel command line.
+
+## Desktop tidy-up (2026-10-29)
+
+Changes made after the first boot test, not yet tested: Firefox always launches in a private window and is the only browser, desktop shortcuts launch without the "Execute File?" prompt (libfm `quick_exec`), the desktop shows five shortcuts including Lunar Settings, the Lunar wallpaper is set in the user profile, the original distribution's artwork packages and branding text are removed or replaced.
+
+## Login screen (2026-10-29)
+
+Boot autologins straight to the desktop. After logging out, `lunar-greeter.py` (a LightDM greeter) shows one Log In button; if it fails to start, `lunar-greeter` falls back to the standard GTK greeter. Not yet tested.

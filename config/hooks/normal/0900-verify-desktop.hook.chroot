@@ -18,6 +18,8 @@ for file in \
     /usr/share/lunar-os/shutdown-dialog.py \
     /usr/share/lunar-os/lunar-settings.py \
     /usr/share/lunar-os/lunar-session-monitor.py \
+    /usr/share/lunar-os/lunar-greeter.py \
+    /usr/share/xgreeters/lunar-greeter.desktop \
     /usr/local/bin/lunar-shutdown \
     /usr/share/plymouth/themes/lunar-os/lunar-os.script \
     /usr/share/plymouth/themes/lunar-os/logo.png \
@@ -30,12 +32,17 @@ for file in \
     fi
 done
 
+if ! python3 -c "import gi; gi.require_version('LightDM', '1'); from gi.repository import LightDM"; then
+    echo "ERROR: PyGObject cannot load LightDM"
+    missing=1
+fi
+
 if ! python3 -c "import gi; gi.require_version('Gtk', '3.0'); from gi.repository import Gtk"; then
     echo "ERROR: PyGObject cannot load GTK 3"
     missing=1
 fi
 
-for script in welcome shutdown-dialog lunar-settings lunar-session-monitor; do
+for script in welcome shutdown-dialog lunar-settings lunar-session-monitor lunar-greeter; do
     if ! python3 -c "import ast, sys; ast.parse(open(sys.argv[1]).read())" "/usr/share/lunar-os/$script.py"; then
         echo "ERROR: $script.py does not compile"
         missing=1
@@ -71,5 +78,25 @@ fi
 if ! grep -q 'Adwaita-dark' /etc/xdg/lxsession/LXDE/desktop.conf 2> /dev/null; then
     echo "WARNING: dark theme not set in /etc/xdg/lxsession/LXDE/desktop.conf"
 fi
+
+if ! grep -q 'Lunar OS' /etc/os-release; then
+    echo "ERROR: os-release still carries the original branding"
+    missing=1
+fi
+
+if ! grep -q 'private-window' /usr/share/applications/firefox-esr.desktop; then
+    echo "ERROR: Firefox is not set to launch in private mode"
+    missing=1
+fi
+
+for entry in /usr/share/applications/*.desktop; do
+    case "$entry" in
+        */firefox-esr.desktop | */lunar-*) continue ;;
+    esac
+    if grep -q -E '^Categories=.*WebBrowser' "$entry"; then
+        echo "ERROR: extra web browser entry $entry"
+        missing=1
+    fi
+done
 
 exit "$missing"

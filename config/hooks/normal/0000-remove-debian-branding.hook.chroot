@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+export DEBIAN_FRONTEND=noninteractive
+
+purge_if_safe() {
+    local pkg="$1" dependents
+    if ! dpkg-query -W "$pkg" > /dev/null 2>&1; then
+        return 0
+    fi
+    dependents="$(apt-get -s purge "$pkg" 2> /dev/null | awk '/^Purg/ {print $2}' | grep -v -x "$pkg" || true)"
+    if [ -n "$dependents" ]; then
+        echo "Keeping $pkg: removing it would also remove: $dependents"
+        return 1
+    fi
+    apt-get -y purge "$pkg"
+}
+
+if ! purge_if_safe desktop-base; then
+    rm -rf /usr/share/desktop-base/*-theme /usr/share/desktop-base/active-theme /usr/share/images/desktop-base
+fi
+
+purge_if_safe menu || true
+
+cat > /etc/os-release << 'CONF'
+PRETTY_NAME="Lunar OS"
+NAME="Lunar OS"
+VERSION_ID="1"
+VERSION="1"
+ID=lunar
+CONF
+
+printf 'Lunar OS \\n \\l\n\n' > /etc/issue
+printf 'Lunar OS\n' > /etc/issue.net
+: > /etc/motd

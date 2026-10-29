@@ -1,9 +1,34 @@
 #!/bin/bash
 set -e
 
+FIREFOX_DESKTOP=/usr/share/applications/firefox-esr.desktop
+
+if [ -f "$FIREFOX_DESKTOP" ]; then
+    sed -i -E 's|^Exec=.*|Exec=firefox-esr --private-window %u|' "$FIREFOX_DESKTOP"
+fi
+
+for entry in /usr/share/applications/*.desktop; do
+    case "$entry" in
+        */firefox-esr.desktop | */lunar-*) continue ;;
+    esac
+    if grep -q -E '^Categories=.*WebBrowser|^Exec=.*(x-www-browser|sensible-browser)' "$entry"; then
+        rm -f "$entry"
+    fi
+done
+
+if [ -x /usr/bin/firefox-esr ]; then
+    update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/firefox-esr 200
+    update-alternatives --set x-www-browser /usr/bin/firefox-esr
+    update-alternatives --install /usr/bin/gnome-www-browser gnome-www-browser /usr/bin/firefox-esr 200
+    update-alternatives --set gnome-www-browser /usr/bin/firefox-esr
+fi
+
 if [ -d /etc/firefox-esr ]; then
     cat > /etc/firefox-esr/lunar.js << 'PREFS'
 pref("browser.privatebrowsing.autostart", true);
+pref("browser.startup.homepage", "about:blank");
+pref("browser.startup.page", 0);
+pref("browser.shell.checkDefaultBrowser", false);
 pref("privacy.trackingprotection.enabled", true);
 pref("privacy.trackingprotection.pbmode.enabled", true);
 pref("browser.download.dir", "/home/lunar/Downloads");
@@ -24,14 +49,3 @@ bgcolor=rgb(0,0,0)
 fgcolor=rgb(255,255,255)
 cursorblinks=true
 CONF
-
-PCMANFM_CONF=/etc/xdg/pcmanfm/LXDE/pcmanfm.conf
-mkdir -p "$(dirname "$PCMANFM_CONF")"
-touch "$PCMANFM_CONF"
-if grep -q '^quick_exec=' "$PCMANFM_CONF"; then
-    sed -i 's/^quick_exec=.*/quick_exec=1/' "$PCMANFM_CONF"
-elif grep -q '^\[config\]' "$PCMANFM_CONF"; then
-    sed -i '/^\[config\]/a quick_exec=1' "$PCMANFM_CONF"
-else
-    printf '[config]\nquick_exec=1\n' >> "$PCMANFM_CONF"
-fi
