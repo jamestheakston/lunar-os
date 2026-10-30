@@ -370,86 +370,172 @@ class LunarUpdater(Gtk.Window):
         path_label.set_line_wrap(True)
         complete_box.pack_start(path_label, False, False, 0)
         
-        # Check available space
-        space_info = self.get_disk_space()
-        space_label = Gtk.Label(label=f"Available space: {space_info}")
-        space_label.set_line_wrap(True)
-        complete_box.pack_start(space_label, False, False, 0)
+        # Detect boot device
+        boot_device = self.get_boot_device()
         
-        # Warning about persistence
-        warning_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        warning_box.get_style_context().add_class("up-to-date")
-        
-        warning_title = Gtk.Label()
-        warning_title.set_markup('<span weight="bold">Update Process:</span>')
-        warning_box.pack_start(warning_title, False, False, 0)
-        
-        step1 = Gtk.Label(label="1. Enable persistence storage temporarily")
-        step1.set_halign(Gtk.Align.START)
-        warning_box.pack_start(step1, False, False, 0)
-        
-        step2 = Gtk.Label(label="2. Download and install system updates")
-        step2.set_halign(Gtk.Align.START)
-        warning_box.pack_start(step2, False, False, 0)
-        
-        step3 = Gtk.Label(label="3. Disable persistence and revert to disposable mode")
-        step3.set_halign(Gtk.Align.START)
-        warning_box.pack_start(step3, False, False, 0)
-        
-        storage_warning = Gtk.Label(label="⚠️ Requires approximately 2-4 GB of free space for updates")
-        storage_warning.set_line_wrap(True)
-        warning_box.pack_start(storage_warning, False, False, 0)
-        
-        complete_box.pack_start(warning_box, False, False, 0)
-        
-        # Install button
-        self.install_button = Gtk.Button(label="Start Update Process")
-        self.install_button.get_style_context().add_class("download-button")
-        self.install_button.connect("clicked", self.on_start_update)
-        complete_box.pack_start(self.install_button, False, False, 0)
+        if boot_device:
+            device_label = Gtk.Label(label=f"Boot device detected: {boot_device}")
+            device_label.set_line_wrap(True)
+            complete_box.pack_start(device_label, False, False, 0)
+            
+            warning_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            warning_box.get_style_context().add_class("up-to-date")
+            
+            warning_title = Gtk.Label()
+            warning_title.set_markup('<span weight="bold">⚠️ WARNING:</span>')
+            warning_box.pack_start(warning_title, False, False, 0)
+            
+            warning1 = Gtk.Label(label="This will completely overwrite the boot device with the new ISO.")
+            warning1.set_line_wrap(True)
+            warning1.set_halign(Gtk.Align.START)
+            warning_box.pack_start(warning1, False, False, 0)
+            
+            warning2 = Gtk.Label(label="All data on the boot device will be lost.")
+            warning2.set_line_wrap(True)
+            warning2.set_halign(Gtk.Align.START)
+            warning_box.pack_start(warning2, False, False, 0)
+            
+            warning3 = Gtk.Label(label="After installation, you must reboot to use the new version.")
+            warning3.set_line_wrap(True)
+            warning3.set_halign(Gtk.Align.START)
+            warning_box.pack_start(warning3, False, False, 0)
+            
+            complete_box.pack_start(warning_box, False, False, 0)
+            
+            # Install button
+            self.install_button = Gtk.Button(label="Install New ISO to Boot Device")
+            self.install_button.get_style_context().add_class("download-button")
+            self.install_button.connect("clicked", self.on_install, boot_device)
+            complete_box.pack_start(self.install_button, False, False, 0)
+        else:
+            no_drive_label = Gtk.Label(label="Could not detect boot device automatically.")
+            no_drive_label.set_line_wrap(True)
+            complete_box.pack_start(no_drive_label, False, False, 0)
+            
+            # Get USB drives
+            drives = self.get_usb_drives()
+            
+            if drives:
+                drive_label = Gtk.Label(label="Select the boot device manually:")
+                drive_label.set_halign(Gtk.Align.START)
+                complete_box.pack_start(drive_label, False, False, 0)
+                
+                self.drive_combo = Gtk.ComboBoxText()
+                for drive in drives:
+                    self.drive_combo.append_text(drive)
+                self.drive_combo.set_active(0)
+                complete_box.pack_start(self.drive_combo, False, False, 0)
+                
+                warning_label = Gtk.Label(label="⚠️ Make sure to select the correct boot device!")
+                warning_label.set_line_wrap(True)
+                complete_box.pack_start(warning_label, False, False, 0)
+                
+                # Install button
+                self.install_button = Gtk.Button(label="Install to Selected Device")
+                self.install_button.get_style_context().add_class("download-button")
+                self.install_button.connect("clicked", self.on_manual_install)
+                complete_box.pack_start(self.install_button, False, False, 0)
+            else:
+                error_label = Gtk.Label(label="No storage devices found. Please insert a USB drive.")
+                error_label.set_line_wrap(True)
+                complete_box.pack_start(error_label, False, False, 0)
         
         self.status_box.pack_start(complete_box, True, True, 0)
         self.status_box.show_all()
     
-    def get_disk_space(self):
+    def get_boot_device(self):
+        try:
+            # Check for /run/live/medium (live-boot)
+            if os.path.exists("/run/live/medium"):
+                result = subprocess.run(
+                    ["findmnt", "-n", "-o", "SOURCE", "/run/live/medium"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if result.returncode == 0:
+                    device = result.stdout.strip()
+                    base_device = device.rstrip("0123456789")
+                    return base_device
+            
+            # Check for /isodevice (Ubuntu-style)
+            if os.path.exists("/isodevice"):
+                result = subprocess.run(
+                    ["findmnt", "-n", "-o", "SOURCE", "/isodevice"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if result.returncode == 0:
+                    device = result.stdout.strip()
+                    base_device = device.rstrip("0123456789")
+                    return base_device
+            
+            # Check /cdrom (Debian-style)
+            if os.path.exists("/cdrom"):
+                result = subprocess.run(
+                    ["findmnt", "-n", "-o", "SOURCE", "/cdrom"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if result.returncode == 0:
+                    device = result.stdout.strip()
+                    base_device = device.rstrip("0123456789")
+                    return base_device
+        except Exception as e:
+            print(f"Error detecting boot device: {e}")
+        
+        return None
+    
+    def get_usb_drives(self):
+        drives = []
         try:
             result = subprocess.run(
-                ["df", "-h", "/"],
+                ["lsblk", "-d", "-n", "-o", "NAME,SIZE,MODEL"],
                 capture_output=True,
                 text=True,
                 check=True
             )
-            lines = result.stdout.split("\n")
-            if len(lines) >= 2:
-                parts = lines[1].split()
-                if len(parts) >= 4:
-                    return f"{parts[3]} available on /"
-        except:
-            pass
-        return "Unknown"
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        name = parts[0]
+                        size = parts[1]
+                        model = " ".join(parts[2:]) if len(parts) > 2 else "Unknown"
+                        if name.startswith("sd") or name.startswith("nvme"):
+                            device = f"/dev/{name}"
+                            drives.append(f"{device} ({size}) - {model}")
+        except Exception as e:
+            print(f"Error getting drives: {e}")
+        return drives
     
-    def on_start_update(self, button):
+    def on_install(self, button, boot_device):
         dialog = Gtk.MessageDialog(
             message_type=Gtk.MessageType.WARNING,
             buttons=Gtk.ButtonsType.YES_NO,
-            text="Start Update Process",
+            text="Install New ISO",
         )
         dialog.format_secondary_text(
-            "This will:\n"
-            "• Enable persistence storage temporarily\n"
-            "• Download and install system updates\n"
-            "• Disable persistence and revert to disposable mode\n\n"
-            "The update will require 2-4 GB of free space.\n"
-            "This process may take 10-30 minutes depending on your internet speed.\n\n"
+            f"This will completely overwrite {boot_device} with the new ISO.\n\n"
+            "All data on this device will be permanently lost.\n"
+            "You must reboot after installation to use the new version.\n\n"
             "Continue?"
         )
         response = dialog.run()
         dialog.destroy()
         
         if response == Gtk.ResponseType.YES:
-            self.run_update_process()
+            self.write_iso(boot_device)
     
-    def run_update_process(self):
+    def on_manual_install(self, button):
+        drive_text = self.drive_combo.get_active_text()
+        if drive_text:
+            boot_device = drive_text.split()[0]
+            self.on_install(button, boot_device)
+    
+    def write_iso(self, boot_device):
         self.installing = True
         
         # Show progress
@@ -459,110 +545,69 @@ class LunarUpdater(Gtk.Window):
         progress_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         progress_box.get_style_context().add_class("update-available")
         
-        self.progress_label = Gtk.Label(label="Starting update process...")
-        progress_box.pack_start(self.progress_label, False, False, 0)
+        info_label = Gtk.Label(label=f"Writing ISO to {boot_device}...")
+        progress_box.pack_start(info_label, False, False, 0)
+        
+        warning_label = Gtk.Label(label="⚠️ Do not remove the device or power off during installation!")
+        warning_label.get_style_context().add_class("info-label")
+        progress_box.pack_start(warning_label, False, False, 0)
         
         self.progress_bar = Gtk.ProgressBar()
         self.progress_bar.set_show_text(True)
-        self.progress_bar.set_text("Initializing...")
+        self.progress_bar.set_text("Starting...")
         self.progress_bar.get_style_context().add_class("progress-bar")
         progress_box.pack_start(self.progress_bar, False, False, 0)
         
         self.status_box.pack_start(progress_box, True, True, 0)
         self.status_box.show_all()
         
-        # Run update in background
+        # Write in background
         import threading
-        threading.Thread(target=self.execute_update, daemon=True).start()
+        threading.Thread(target=self.execute_write, args=(boot_device,), daemon=True).start()
     
-    def execute_update(self):
+    def execute_write(self, boot_device):
         try:
-            # Step 1: Create persistence file
-            GLib.idle_add(lambda: self.progress_label.set_text("Creating persistence storage..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Creating 4GB persistence file..."))
+            # Unmount the device if mounted
+            GLib.idle_add(lambda: self.progress_label.set_text("Unmounting device..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Unmounting partitions..."))
             GLib.idle_add(lambda: self.progress_bar.set_fraction(0.1))
             
-            persistence_file = "/tmp/lunar-persistence"
-            subprocess.run(
-                ["sudo", "dd", "if=/dev/zero", f"of={persistence_file}", "bs=1M", "count=4096", "status=progress"],
-                capture_output=True,
-                check=True
-            )
+            subprocess.run(["sudo", "umount", f"{boot_device}*"], check=False)
             
-            # Format as ext4
-            GLib.idle_add(lambda: self.progress_label.set_text("Formatting persistence storage..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Formatting as ext4..."))
+            # Write ISO using dd
+            GLib.idle_add(lambda: self.progress_bar.set_text("Writing ISO to device..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Writing with dd (this may take several minutes)..."))
             GLib.idle_add(lambda: self.progress_bar.set_fraction(0.2))
             
-            subprocess.run(
-                ["sudo", "mkfs.ext4", "-F", persistence_file],
-                capture_output=True,
-                check=True
+            process = subprocess.Popen(
+                ["sudo", "dd", f"if={self.iso_path}", f"of={boot_device}", "bs=4M", "status=progress"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
             )
             
-            # Mount persistence
-            GLib.idle_add(lambda: self.progress_label.set_text("Mounting persistence storage..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Mounting overlay..."))
-            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.3))
+            for line in process.stdout:
+                # Update progress
+                GLib.idle_add(lambda: self.progress_bar.pulse())
             
-            persistence_mount = "/tmp/lunar-persistence-mount"
-            os.makedirs(persistence_mount, exist_ok=True)
-            subprocess.run(
-                ["sudo", "mount", "-o", "loop", persistence_file, persistence_mount],
-                check=True
-            )
+            process.wait()
             
-            # Step 2: Update system
-            GLib.idle_add(lambda: self.progress_label.set_text("Updating system packages..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Running apt-get update..."))
-            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.4))
-            
-            subprocess.run(
-                ["sudo", "apt-get", "update"],
-                capture_output=True,
-                check=True
-            )
-            
-            GLib.idle_add(lambda: self.progress_label.set_text("Running apt-get upgrade..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Installing updates..."))
-            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.5))
-            
-            subprocess.run(
-                ["sudo", "apt-get", "upgrade", "-y"],
-                capture_output=True,
-                check=True
-            )
-            
-            # Step 3: Disable persistence
-            GLib.idle_add(lambda: self.progress_label.set_text("Cleaning up..."))
-            GLib.idle_add(lambda: self.progress_bar.set_text("Unmounting persistence..."))
-            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.8))
-            
-            subprocess.run(
-                ["sudo", "umount", persistence_mount],
-                check=True
-            )
-            
-            GLib.idle_add(lambda: self.progress_label.set_text("Removing persistence file..."))
+            # Sync to ensure all data is written
+            GLib.idle_add(lambda: self.progress_bar.set_text("Syncing data..."))
             GLib.idle_add(lambda: self.progress_bar.set_fraction(0.9))
             
-            subprocess.run(
-                ["sudo", "rm", "-f", persistence_file],
-                check=True
-            )
+            subprocess.run(["sudo", "sync"], check=True)
             
-            GLib.idle_add(self.update_complete)
-            
+            if process.returncode == 0:
+                GLib.idle_add(self.write_complete)
+            else:
+                GLib.idle_add(lambda: self.show_error, "Writing ISO failed")
         except Exception as e:
-            GLib.idle_add(lambda: self.show_error, f"Update failed: {str(e)}")
-            # Cleanup on error
-            try:
-                subprocess.run(["sudo", "umount", "/tmp/lunar-persistence-mount"], check=False)
-                subprocess.run(["sudo", "rm", "-f", "/tmp/lunar-persistence"], check=False)
-            except:
-                pass
+            GLib.idle_add(lambda: self.show_error, f"Error: {str(e)}")
     
-    def update_complete(self):
+    def write_complete(self):
         self.installing = False
         
         # Clear status box
@@ -573,20 +618,16 @@ class LunarUpdater(Gtk.Window):
         complete_box.get_style_context().add_class("update-available")
         
         label = Gtk.Label()
-        label.set_markup('<span weight="bold">Update Complete!</span>')
+        label.set_markup('<span weight="bold">Installation Complete!</span>')
         complete_box.pack_start(label, False, False, 0)
         
-        success_label = Gtk.Label(label="System has been updated successfully.")
+        success_label = Gtk.Label(label="The new ISO has been written to the boot device.")
         success_label.set_line_wrap(True)
         complete_box.pack_start(success_label, False, False, 0)
         
-        info_label = Gtk.Label(label="Persistence has been disabled. Your system is back in disposable mode.")
+        info_label = Gtk.Label(label="You must reboot to use the updated version of Lunar OS.")
         info_label.set_line_wrap(True)
         complete_box.pack_start(info_label, False, False, 0)
-        
-        reboot_label = Gtk.Label(label="You may want to reboot to apply all changes.")
-        reboot_label.set_line_wrap(True)
-        complete_box.pack_start(reboot_label, False, False, 0)
         
         # Reboot button
         reboot_button = Gtk.Button(label="Reboot Now")
