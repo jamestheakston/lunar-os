@@ -370,31 +370,246 @@ class LunarUpdater(Gtk.Window):
         path_label.set_line_wrap(True)
         complete_box.pack_start(path_label, False, False, 0)
         
-        info_label = Gtk.Label(label="To install the update:")
-        info_label.set_halign(Gtk.Align.START)
-        complete_box.pack_start(info_label, False, False, 0)
+        # Check available space
+        space_info = self.get_disk_space()
+        space_label = Gtk.Label(label=f"Available space: {space_info}")
+        space_label.set_line_wrap(True)
+        complete_box.pack_start(space_label, False, False, 0)
         
-        instructions = Gtk.Label(
-            "1. Write the ISO to a USB drive using a tool like BalenaEtcher or dd\n"
-            "2. Boot from the USB drive\n"
-            "3. Your data will be preserved if you use the same USB device"
-        )
-        instructions.set_halign(Gtk.Align.START)
-        instructions.set_xalign(0)
-        instructions.set_line_wrap(True)
-        complete_box.pack_start(instructions, False, False, 0)
+        # Warning about persistence
+        warning_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        warning_box.get_style_context().add_class("up-to-date")
         
-        # Open folder button
-        open_button = Gtk.Button(label="Open Downloads Folder")
-        open_button.get_style_context().add_class("check-button")
-        open_button.connect("clicked", self.on_open_folder)
-        complete_box.pack_start(open_button, False, False, 0)
+        warning_title = Gtk.Label()
+        warning_title.set_markup('<span weight="bold">Update Process:</span>')
+        warning_box.pack_start(warning_title, False, False, 0)
+        
+        step1 = Gtk.Label(label="1. Enable persistence storage temporarily")
+        step1.set_halign(Gtk.Align.START)
+        warning_box.pack_start(step1, False, False, 0)
+        
+        step2 = Gtk.Label(label="2. Download and install system updates")
+        step2.set_halign(Gtk.Align.START)
+        warning_box.pack_start(step2, False, False, 0)
+        
+        step3 = Gtk.Label(label="3. Disable persistence and revert to disposable mode")
+        step3.set_halign(Gtk.Align.START)
+        warning_box.pack_start(step3, False, False, 0)
+        
+        storage_warning = Gtk.Label(label="⚠️ Requires approximately 2-4 GB of free space for updates")
+        storage_warning.set_line_wrap(True)
+        warning_box.pack_start(storage_warning, False, False, 0)
+        
+        complete_box.pack_start(warning_box, False, False, 0)
+        
+        # Install button
+        self.install_button = Gtk.Button(label="Start Update Process")
+        self.install_button.get_style_context().add_class("download-button")
+        self.install_button.connect("clicked", self.on_start_update)
+        complete_box.pack_start(self.install_button, False, False, 0)
         
         self.status_box.pack_start(complete_box, True, True, 0)
         self.status_box.show_all()
     
-    def on_open_folder(self, button):
-        subprocess.run(["pcmanfm", DOWNLOAD_DIR], check=False)
+    def get_disk_space(self):
+        try:
+            result = subprocess.run(
+                ["df", "-h", "/"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            lines = result.stdout.split("\n")
+            if len(lines) >= 2:
+                parts = lines[1].split()
+                if len(parts) >= 4:
+                    return f"{parts[3]} available on /"
+        except:
+            pass
+        return "Unknown"
+    
+    def on_start_update(self, button):
+        dialog = Gtk.MessageDialog(
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Start Update Process",
+        )
+        dialog.format_secondary_text(
+            "This will:\n"
+            "• Enable persistence storage temporarily\n"
+            "• Download and install system updates\n"
+            "• Disable persistence and revert to disposable mode\n\n"
+            "The update will require 2-4 GB of free space.\n"
+            "This process may take 10-30 minutes depending on your internet speed.\n\n"
+            "Continue?"
+        )
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            self.run_update_process()
+    
+    def run_update_process(self):
+        self.installing = True
+        
+        # Show progress
+        for child in self.status_box.get_children():
+            self.status_box.remove(child)
+        
+        progress_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        progress_box.get_style_context().add_class("update-available")
+        
+        self.progress_label = Gtk.Label(label="Starting update process...")
+        progress_box.pack_start(self.progress_label, False, False, 0)
+        
+        self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_show_text(True)
+        self.progress_bar.set_text("Initializing...")
+        self.progress_bar.get_style_context().add_class("progress-bar")
+        progress_box.pack_start(self.progress_bar, False, False, 0)
+        
+        self.status_box.pack_start(progress_box, True, True, 0)
+        self.status_box.show_all()
+        
+        # Run update in background
+        import threading
+        threading.Thread(target=self.execute_update, daemon=True).start()
+    
+    def execute_update(self):
+        try:
+            # Step 1: Create persistence file
+            GLib.idle_add(lambda: self.progress_label.set_text("Creating persistence storage..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Creating 4GB persistence file..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.1))
+            
+            persistence_file = "/tmp/lunar-persistence"
+            subprocess.run(
+                ["sudo", "dd", "if=/dev/zero", f"of={persistence_file}", "bs=1M", "count=4096", "status=progress"],
+                capture_output=True,
+                check=True
+            )
+            
+            # Format as ext4
+            GLib.idle_add(lambda: self.progress_label.set_text("Formatting persistence storage..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Formatting as ext4..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.2))
+            
+            subprocess.run(
+                ["sudo", "mkfs.ext4", "-F", persistence_file],
+                capture_output=True,
+                check=True
+            )
+            
+            # Mount persistence
+            GLib.idle_add(lambda: self.progress_label.set_text("Mounting persistence storage..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Mounting overlay..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.3))
+            
+            persistence_mount = "/tmp/lunar-persistence-mount"
+            os.makedirs(persistence_mount, exist_ok=True)
+            subprocess.run(
+                ["sudo", "mount", "-o", "loop", persistence_file, persistence_mount],
+                check=True
+            )
+            
+            # Step 2: Update system
+            GLib.idle_add(lambda: self.progress_label.set_text("Updating system packages..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Running apt-get update..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.4))
+            
+            subprocess.run(
+                ["sudo", "apt-get", "update"],
+                capture_output=True,
+                check=True
+            )
+            
+            GLib.idle_add(lambda: self.progress_label.set_text("Running apt-get upgrade..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Installing updates..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.5))
+            
+            subprocess.run(
+                ["sudo", "apt-get", "upgrade", "-y"],
+                capture_output=True,
+                check=True
+            )
+            
+            # Step 3: Disable persistence
+            GLib.idle_add(lambda: self.progress_label.set_text("Cleaning up..."))
+            GLib.idle_add(lambda: self.progress_bar.set_text("Unmounting persistence..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.8))
+            
+            subprocess.run(
+                ["sudo", "umount", persistence_mount],
+                check=True
+            )
+            
+            GLib.idle_add(lambda: self.progress_label.set_text("Removing persistence file..."))
+            GLib.idle_add(lambda: self.progress_bar.set_fraction(0.9))
+            
+            subprocess.run(
+                ["sudo", "rm", "-f", persistence_file],
+                check=True
+            )
+            
+            GLib.idle_add(self.update_complete)
+            
+        except Exception as e:
+            GLib.idle_add(lambda: self.show_error, f"Update failed: {str(e)}")
+            # Cleanup on error
+            try:
+                subprocess.run(["sudo", "umount", "/tmp/lunar-persistence-mount"], check=False)
+                subprocess.run(["sudo", "rm", "-f", "/tmp/lunar-persistence"], check=False)
+            except:
+                pass
+    
+    def update_complete(self):
+        self.installing = False
+        
+        # Clear status box
+        for child in self.status_box.get_children():
+            self.status_box.remove(child)
+        
+        complete_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        complete_box.get_style_context().add_class("update-available")
+        
+        label = Gtk.Label()
+        label.set_markup('<span weight="bold">Update Complete!</span>')
+        complete_box.pack_start(label, False, False, 0)
+        
+        success_label = Gtk.Label(label="System has been updated successfully.")
+        success_label.set_line_wrap(True)
+        complete_box.pack_start(success_label, False, False, 0)
+        
+        info_label = Gtk.Label(label="Persistence has been disabled. Your system is back in disposable mode.")
+        info_label.set_line_wrap(True)
+        complete_box.pack_start(info_label, False, False, 0)
+        
+        reboot_label = Gtk.Label(label="You may want to reboot to apply all changes.")
+        reboot_label.set_line_wrap(True)
+        complete_box.pack_start(reboot_label, False, False, 0)
+        
+        # Reboot button
+        reboot_button = Gtk.Button(label="Reboot Now")
+        reboot_button.get_style_context().add_class("download-button")
+        reboot_button.connect("clicked", self.on_reboot)
+        complete_box.pack_start(reboot_button, False, False, 0)
+        
+        self.status_box.pack_start(complete_box, True, True, 0)
+        self.status_box.show_all()
+    
+    
+    def on_reboot(self, button):
+        dialog = Gtk.MessageDialog(
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Reboot System",
+        )
+        dialog.format_secondary_text("Are you sure you want to reboot? Make sure to save any unsaved work.")
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            subprocess.run(["sudo", "reboot"], check=False)
 
 
 def main():
