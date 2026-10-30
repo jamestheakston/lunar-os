@@ -49,3 +49,13 @@ Changes made after the first boot test, not yet tested: Firefox always launches 
 ## Login screen (2026-10-29)
 
 Boot autologins straight to the desktop. After logging out, `lunar-greeter.py` (a LightDM greeter) shows one Log In button; if it fails to start, `lunar-greeter` falls back to the standard GTK greeter. Not yet tested.
+
+## Start menu, apps and file manager (2026-10-29)
+
+Changes made after the first boot tests, not yet tested on a real ISO:
+
+- `lunar-start7.py` is a new Windows 7 style start menu: pinned programs, All Programs, live search, places and tools on the right, and a Shut down button with a Restart and Log off menu. A start orb button replaces the old LXDE menu in the panel, and Ctrl+Esc opens it. Earlier it was never installed or added to the panel.
+- Lunar Store was crashing on startup (it read the installed package list before it existed and used the wrong widget index). It is rewritten with a dark theme, background installs with an `apt-get update` first, and an installation details panel.
+- Lunar Settings, Lunar Store and the Start menu write start-up errors to `/tmp/lunar-*-error.log`.
+- `shutdown-dialog.py` was missing the `GLib` import.
+- File manager look: Arc-Dark theme, Papirus-Dark icons, larger icons, breadcrumb path bar, status bar and roomier lists.

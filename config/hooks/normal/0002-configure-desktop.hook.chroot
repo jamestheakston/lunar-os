@@ -15,8 +15,8 @@ CONF
 cat > /etc/lightdm/lightdm-gtk-greeter.conf << 'CONF'
 [greeter]
 background=/usr/share/backgrounds/lunar-os/wallpaper.png
-theme-name=Adwaita-dark
-icon-theme-name=Adwaita
+theme-name=Arc-Dark
+icon-theme-name=Papirus-Dark
 font-name=Sans 10
 position=50%,center
 CONF
@@ -54,8 +54,8 @@ else:
     conf.read(path)
     if not conf.has_section("GTK"):
         conf.add_section("GTK")
-    conf.set("GTK", "sNet/ThemeName", "Adwaita-dark")
-    conf.set("GTK", "sNet/IconThemeName", "Adwaita")
+    conf.set("GTK", "sNet/ThemeName", "Arc-Dark")
+    conf.set("GTK", "sNet/IconThemeName", "Papirus-Dark")
     conf.set("GTK", "sGtk/FontName", "Sans 10")
     with open(path, "w") as handle:
         conf.write(handle, space_around_delimiters=False)

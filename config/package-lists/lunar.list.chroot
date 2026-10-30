@@ -22,6 +22,9 @@ dbus-x11
 # Look and feel
 gnome-themes-extra
 adwaita-icon-theme
+arc-theme
+gtk2-engines-murrine
+papirus-icon-theme
 picom
 lxappearance
 

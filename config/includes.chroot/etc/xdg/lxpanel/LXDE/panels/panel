@@ -27,22 +27,17 @@ Plugin {
     }
 }
 Plugin {
-    type=menu
+    type=launchbar
     Config {
-        image=/usr/share/icons/hicolor/32x32/apps/lunar-os.png
-        system {
+        Button {
+            id=lunar-start7.desktop
         }
-        separator {
-        }
-        item {
-            command=run
-        }
-        separator {
-        }
-        item {
-            image=system-shutdown
-            command=logout
-        }
+    }
+}
+Plugin {
+    type=space
+    Config {
+        Size=6
     }
 }
 Plugin {

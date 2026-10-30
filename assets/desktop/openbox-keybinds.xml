@@ -8,3 +8,4 @@
     <keybind key="W-d"><action name="ToggleShowDesktop"/></keybind>
     <keybind key="W-Up"><action name="ToggleMaximize"/></keybind>
     <keybind key="W-Down"><action name="Iconify"/></keybind>
+    <keybind key="C-Escape"><action name="Execute"><command>/usr/share/lunar-os/lunar-start7.py</command></action></keybind>

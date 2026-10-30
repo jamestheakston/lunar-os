@@ -1,3 +1,14 @@
-gtk-theme-name="Adwaita-dark"
-gtk-icon-theme-name="Adwaita"
+gtk-theme-name="Arc-Dark"
+gtk-icon-theme-name="Papirus-Dark"
 gtk-font-name="Sans 10"
+gtk-toolbar-style=GTK_TOOLBAR_ICONS
+gtk-menu-images=1
+gtk-button-images=0
+gtk-enable-animations=1
+
+style "lunar-roomy-lists"
+{
+    GtkTreeView::vertical-separator = 6
+    GtkTreeView::horizontal-separator = 6
+}
+class "GtkTreeView" style "lunar-roomy-lists"

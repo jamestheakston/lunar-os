@@ -15,6 +15,7 @@ cd "$ASSETS_DIR/desktop"
 python3 generate-wallpaper.py
 python3 generate-logo.py
 python3 generate-store-icon.py
+python3 generate-start-orb.py
 cp logo-128x128.png welcome-icon.png
 cp logo-128x128.png "$ASSETS_DIR/boot/plymouth/logo.png"
 

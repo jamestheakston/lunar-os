@@ -3,10 +3,13 @@ import configparser
 import os
 import shutil
 import subprocess
+import sys
+import traceback
 from datetime import datetime
 
 import gi
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gtk, Pango
 
 HOME = os.path.expanduser("~")
@@ -14,8 +17,9 @@ GTK3_SETTINGS = os.path.join(HOME, ".config", "gtk-3.0", "settings.ini")
 GTK2_RC = os.path.join(HOME, ".gtkrc-2.0")
 LXSESSION_USER = os.path.join(HOME, ".config", "lxsession", "LXDE", "desktop.conf")
 LXSESSION_SYSTEM = "/etc/xdg/lxsession/LXDE/desktop.conf"
-LIGHT_THEME = "Adwaita"
-DARK_THEME = "Adwaita-dark"
+LIGHT_THEME = "Arc"
+DARK_THEME = "Arc-Dark"
+ERROR_LOG = "/tmp/lunar-settings-error.log"
 CURRENT_YEAR = datetime.now().year
 AUTHOR = "James Theakston"
 LICENSE = "MIT"
@@ -82,14 +86,16 @@ SOFTWARE.
 
 def launch(*command):
     try:
-        subprocess.Popen(command)
+        subprocess.Popen(command, start_new_session=True)
     except OSError as error:
         dialog = Gtk.MessageDialog(
             message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.CLOSE,
-            text=f"Could not start {command[0]}",
+            text=f"Could not start {os.path.basename(command[0])}",
         )
-        dialog.format_secondary_text(str(error))
+        dialog.format_secondary_text(
+            f"{error}\n\nIf the program is not installed, you can get it from Lunar Store."
+        )
         dialog.run()
         dialog.destroy()
 
@@ -509,4 +515,14 @@ window {
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        text = traceback.format_exc()
+        try:
+            with open(ERROR_LOG, "a") as handle:
+                handle.write(text + "\n")
+        except OSError:
+            pass
+        print(text, file=sys.stderr)
+        sys.exit(1)

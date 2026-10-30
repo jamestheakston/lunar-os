@@ -3,7 +3,7 @@ set -e
 
 missing=0
 
-for pkg in lxde-core lightdm openbox firefox-esr pcmanfm lxterminal mousepad galculator gpicview lxtask dunst picom plymouth gnome-themes-extra gir1.2-gtk-3.0 network-manager-gnome; do
+for pkg in lxde-core lightdm openbox firefox-esr pcmanfm lxterminal mousepad galculator gpicview lxtask dunst picom plymouth gnome-themes-extra arc-theme papirus-icon-theme gir1.2-gtk-3.0 network-manager-gnome; do
     if ! dpkg-query -W -f='${Status}' "$pkg" 2> /dev/null | grep -q 'install ok installed'; then
         echo "ERROR: required package $pkg is not installed"
         missing=1
@@ -19,6 +19,9 @@ for file in \
     /usr/share/lunar-os/lunar-settings.py \
     /usr/share/lunar-os/lunar-session-monitor.py \
     /usr/share/lunar-os/lunar-greeter.py \
+    /usr/share/lunar-os/lunar-start7.py \
+    /usr/share/lunar-os/lunar-store.py \
+    /usr/share/lunar-os/start-orb.png \
     /usr/share/xgreeters/lunar-greeter.desktop \
     /usr/local/bin/lunar-shutdown \
     /usr/share/plymouth/themes/lunar-os/lunar-os.script \
@@ -42,7 +45,7 @@ if ! python3 -c "import gi; gi.require_version('Gtk', '3.0'); from gi.repository
     missing=1
 fi
 
-for script in welcome shutdown-dialog lunar-settings lunar-session-monitor lunar-greeter; do
+for script in welcome shutdown-dialog lunar-settings lunar-session-monitor lunar-greeter lunar-start7 lunar-store; do
     if ! python3 -c "import ast, sys; ast.parse(open(sys.argv[1]).read())" "/usr/share/lunar-os/$script.py"; then
         echo "ERROR: $script.py does not compile"
         missing=1

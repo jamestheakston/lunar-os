@@ -1,9 +1,10 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Lunar Start
-Comment=Windows 7-style start menu
+Name=Start
+Comment=Open the Lunar start menu
 Exec=/usr/share/lunar-os/lunar-start7.py
-Icon=lunar-os
+Icon=/usr/share/lunar-os/start-orb.png
 Terminal=false
+NoDisplay=true
 Categories=System;

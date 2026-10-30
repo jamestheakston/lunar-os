@@ -1,407 +1,418 @@
 #!/usr/bin/env python3
 import os
 import subprocess
+import sys
 import threading
+import traceback
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GLib, Gtk
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk, Pango
 
-HOME = os.path.expanduser("~")
+ERROR_LOG = "/tmp/lunar-store-error.log"
 
 CSS = b"""
-window {
-    background-color: #f5f5f5;
+window.lunar-store { background-color: #1a1a2e; }
+window.lunar-store label { color: #e8e8f0; }
+box.store-sidebar { background-color: #14142a; border-right: 1px solid #2d2d4d; }
+label.store-title { font-size: 20px; font-weight: bold; color: #ffffff; }
+label.store-note { font-size: 12px; color: #9a9ab8; }
+label.app-name { font-size: 15px; font-weight: bold; color: #ffffff; }
+label.app-description { font-size: 12px; color: #b0b0c8; }
+label.app-status { font-size: 12px; color: #9a9ab8; }
+list.store-categories, list.store-apps { background-color: transparent; }
+list.store-categories row { padding: 11px 18px; color: #d0d0e4; border-radius: 8px; margin: 2px 8px; }
+list.store-categories row:hover { background-color: rgba(108, 92, 231, 0.25); }
+list.store-categories row:selected { background-color: #6c5ce7; color: #ffffff; }
+list.store-apps row { background-color: transparent; padding: 0; }
+box.app-card {
+    background-color: #232340;
+    border: 1px solid #2f2f55;
+    border-radius: 10px;
+    padding: 14px;
+    margin: 6px 14px;
 }
-.sidebar {
-    background-color: #e8e8e8;
-    border-right: 1px solid #ccc;
+box.app-card:hover { border-color: #6c5ce7; }
+entry.store-search {
+    background-image: none;
+    background-color: #14142a;
+    color: #e8e8f0;
+    border: 1px solid #3a3a5c;
+    border-radius: 16px;
+    padding: 7px 14px;
 }
-.category-item {
-    padding: 12px 16px;
-    border-bottom: 1px solid #ddd;
-}
-.category-item:hover {
-    background-color: #d0d0d0;
-}
-.category-item.active {
-    background-color: #a8d0f0;
-}
-.app-item {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
+button.install-button {
+    background-image: none;
+    background-color: #6c5ce7;
+    color: #ffffff;
+    border: none;
     border-radius: 8px;
-    padding: 12px;
-    margin: 8px;
-}
-.app-item:hover {
-    background-color: #f8f8ff;
-    border-color: #a8d0f0;
-}
-.app-name {
-    font-size: 14px;
+    padding: 8px 20px;
     font-weight: bold;
 }
-.app-description {
-    font-size: 12px;
-    color: #666;
-}
-.install-button {
-    background-color: #6c5ce7;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-}
-.install-button:hover {
-    background-color: #7d6ff0;
-}
-.install-button.installed {
-    background-color: #27ae60;
-}
-.progress-bar {
-    margin-top: 8px;
-}
-.terminal-toggle {
-    margin-top: 8px;
-}
+button.install-button:hover { background-color: #7d6ff0; }
+button.install-button:disabled { background-color: #3a3a5c; color: #a0a0b8; }
+button.install-button.installed { background-color: #1e8e5a; color: #ffffff; }
+progressbar trough { min-height: 8px; border-radius: 4px; background-color: #14142a; }
+progressbar progress { min-height: 8px; border-radius: 4px; background-color: #6c5ce7; }
+textview.install-log, textview.install-log text { background-color: #0e0e1c; color: #c8c8d8; }
 """
 
-CATEGORIES = {
-    "all": "All Applications",
-    "internet": "Internet",
-    "multimedia": "Multimedia",
-    "office": "Office",
-    "graphics": "Graphics",
-    "games": "Games",
-    "system": "System",
-    "accessories": "Accessories",
-}
+CATEGORIES = (
+    ("all", "All Applications"),
+    ("internet", "Internet"),
+    ("multimedia", "Multimedia"),
+    ("office", "Office"),
+    ("graphics", "Graphics"),
+    ("games", "Games"),
+    ("system", "System"),
+    ("accessories", "Accessories"),
+)
 
-PACKAGES = [
-    {"name": "Firefox ESR", "package": "firefox-esr", "category": "internet", "description": "Extended Support Release web browser"},
-    {"name": "Chromium", "package": "chromium", "category": "internet", "description": "Open-source web browser"},
-    {"name": "Thunderbird", "package": "thunderbird", "category": "internet", "description": "Email client"},
-    {"name": "Transmission", "package": "transmission-gtk", "category": "internet", "description": "BitTorrent client"},
-    {"name": "FileZilla", "package": "filezilla", "category": "internet", "description": "FTP client"},
-    {"name": "VLC Media Player", "package": "vlc", "category": "multimedia", "description": "Media player"},
-    {"name": "Audacity", "package": "audacity", "category": "multimedia", "description": "Audio editor"},
-    {"name": "GIMP", "package": "gimp", "category": "graphics", "description": "Image editor"},
-    {"name": "Inkscape", "package": "inkscape", "category": "graphics", "description": "Vector graphics editor"},
-    {"name": "Blender", "package": "blender", "category": "multimedia", "description": "3D creation suite"},
-    {"name": "LibreOffice", "package": "libreoffice", "category": "office", "description": "Full office suite"},
-    {"name": "Evince", "package": "evince", "category": "office", "description": "PDF viewer"},
-    {"name": "Steam", "package": "steam-installer", "category": "games", "description": "Steam gaming platform"},
-    {"name": "Lutris", "package": "lutris", "category": "games", "description": "Open gaming platform"},
-    {"name": "GParted", "package": "gparted", "category": "system", "description": "Partition editor"},
-    {"name": "BleachBit", "package": "bleachbit", "category": "system", "description": "System cleaner"},
-    {"name": "Htop", "package": "htop", "category": "system", "description": "Process viewer"},
-    {"name": "Vim", "package": "vim", "category": "accessories", "description": "Text editor"},
-    {"name": "Nano", "package": "nano", "category": "accessories", "description": "Simple text editor"},
-    {"name": "Geany", "package": "geany", "category": "accessories", "description": "IDE/Text editor"},
-]
+PACKAGES = (
+    ("Chromium", "chromium", "internet", "Open-source web browser", "chromium"),
+    ("Thunderbird", "thunderbird", "internet", "Email client", "thunderbird"),
+    ("Transmission", "transmission-gtk", "internet", "BitTorrent client", "transmission"),
+    ("FileZilla", "filezilla", "internet", "FTP and SFTP client", "filezilla"),
+    ("VLC Media Player", "vlc", "multimedia", "Plays almost any audio or video file", "vlc"),
+    ("Audacity", "audacity", "multimedia", "Audio recorder and editor", "audacity"),
+    ("Blender", "blender", "multimedia", "3D creation suite", "blender"),
+    ("GIMP", "gimp", "graphics", "Image editor", "gimp"),
+    ("Inkscape", "inkscape", "graphics", "Vector graphics editor", "inkscape"),
+    ("LibreOffice", "libreoffice", "office", "Full office suite", "libreoffice-startcenter"),
+    ("Evince", "evince", "office", "PDF and document viewer", "evince"),
+    ("Steam", "steam-installer", "games", "Steam gaming platform", "steam"),
+    ("Lutris", "lutris", "games", "Open gaming platform", "lutris"),
+    ("GParted", "gparted", "system", "Partition editor", "gparted"),
+    ("BleachBit", "bleachbit", "system", "System cleaner", "bleachbit"),
+    ("Geany", "geany", "accessories", "Lightweight code editor", "geany"),
+    ("Vim", "vim", "accessories", "Terminal text editor", "vim"),
+)
+
+
+def log_error(text):
+    try:
+        with open(ERROR_LOG, "a") as handle:
+            handle.write(text + "\n")
+    except OSError:
+        pass
+
+
+def installed_packages():
+    try:
+        result = subprocess.run(
+            ["dpkg-query", "-W", "-f=${Package} ${Status}\n"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return set()
+    names = set()
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 4 and parts[-1] == "installed":
+            names.add(parts[0])
+    return names
+
+
+class AppCard(Gtk.Box):
+    def __init__(self, store, name, package, description, icon_name):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.store = store
+        self.package = package
+        self.get_style_context().add_class("app-card")
+
+        top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        theme = Gtk.IconTheme.get_default()
+        chosen = icon_name if theme.has_icon(icon_name) else "package-x-generic"
+        icon = Gtk.Image.new_from_icon_name(chosen, Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(48)
+        top.pack_start(icon, False, False, 0)
+
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title = Gtk.Label(label=name)
+        title.get_style_context().add_class("app-name")
+        title.set_halign(Gtk.Align.START)
+        text.pack_start(title, False, False, 0)
+        desc = Gtk.Label(label=description)
+        desc.get_style_context().add_class("app-description")
+        desc.set_halign(Gtk.Align.START)
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+        text.pack_start(desc, False, False, 0)
+        top.pack_start(text, True, True, 0)
+
+        self.button = Gtk.Button(label="Install")
+        self.button.get_style_context().add_class("install-button")
+        self.button.set_valign(Gtk.Align.CENTER)
+        self.button.connect("clicked", self.on_clicked)
+        top.pack_start(self.button, False, False, 0)
+        self.pack_start(top, False, False, 0)
+
+        self.progress = Gtk.ProgressBar()
+        self.pack_start(self.progress, False, False, 0)
+
+        self.status = Gtk.Label(label="")
+        self.status.get_style_context().add_class("app-status")
+        self.status.set_halign(Gtk.Align.START)
+        self.pack_start(self.status, False, False, 0)
+
+    def on_clicked(self, _button):
+        self.store.start_install(self)
+
+    def mark_installed(self):
+        self.button.set_label("Installed")
+        self.button.set_sensitive(False)
+        self.button.get_style_context().add_class("installed")
+
+    def set_busy(self, busy):
+        self.button.set_sensitive(not busy)
+        self.progress.set_visible(busy)
+        self.status.set_visible(busy)
+        if busy:
+            self.button.set_label("Installing\u2026")
 
 
 class LunarStore(Gtk.Window):
     def __init__(self):
         super().__init__(title="Lunar Store")
-        self.set_default_size(900, 600)
+        self.set_default_size(960, 640)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("lunar-store")
+        self.get_style_context().add_class("lunar-store")
         self.connect("destroy", Gtk.main_quit)
-        
-        self.current_category = "all"
+
+        self.installed = set()
+        self.cards = []
         self.installing = None
-        self.terminal_window = None
-        self.terminal_process = None
-        
+        self.pulse_id = None
+        self.category = "all"
+
         self.build()
         self.show_all()
-        
-        # Check installed packages in background
-        threading.Thread(target=self.check_installed, daemon=True).start()
-    
+        self.details.set_visible(False)
+        for card in self.cards:
+            card.progress.set_visible(False)
+            card.status.set_visible(False)
+        threading.Thread(target=self.load_installed, daemon=True).start()
+
     def build(self):
-        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.add(main_box)
-        
-        # Sidebar with categories
-        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        sidebar.get_style_context().add_class("sidebar")
-        sidebar.set_size_request(200, -1)
-        
-        scrolled_sidebar = Gtk.ScrolledWindow()
-        scrolled_sidebar.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.add(root)
+
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        sidebar.get_style_context().add_class("store-sidebar")
+        sidebar.set_size_request(220, -1)
+        title = Gtk.Label(label="Lunar Store")
+        title.get_style_context().add_class("store-title")
+        title.set_halign(Gtk.Align.START)
+        title.set_margin_start(18)
+        title.set_margin_top(18)
+        title.set_margin_bottom(8)
+        sidebar.pack_start(title, False, False, 0)
+
         self.category_list = Gtk.ListBox()
+        self.category_list.get_style_context().add_class("store-categories")
         self.category_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        self.category_list.connect("row-activated", self.on_category_changed)
-        scrolled_sidebar.add(self.category_list)
-        sidebar.pack_start(scrolled_sidebar, True, True, 0)
-        
-        for cat_id, cat_name in CATEGORIES.items():
+        for key, label_text in CATEGORIES:
             row = Gtk.ListBoxRow()
-            label = Gtk.Label(label=cat_name)
+            row.category_key = key
+            label = Gtk.Label(label=label_text)
             label.set_halign(Gtk.Align.START)
             row.add(label)
-            row.get_style_context().add_class("category-item")
-            row.category_id = cat_id
             self.category_list.add(row)
-        
-        main_box.pack_start(sidebar, False, False, 0)
-        
-        # Main content area
+        self.category_list.connect("row-selected", self.on_category_selected)
+        sidebar.pack_start(self.category_list, True, True, 0)
+
+        note = Gtk.Label(label="Apps you install live in memory and are removed when you shut down.")
+        note.get_style_context().add_class("store-note")
+        note.set_line_wrap(True)
+        note.set_xalign(0)
+        note.set_margin_start(18)
+        note.set_margin_end(14)
+        note.set_margin_bottom(16)
+        sidebar.pack_end(note, False, False, 0)
+        root.pack_start(sidebar, False, False, 0)
+
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(content, True, True, 0)
-        
-        # Search bar
-        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        search_box.set_margin_top(8)
-        search_box.set_margin_start(8)
-        search_box.set_margin_end(8)
-        
-        search_entry = Gtk.Entry()
-        search_entry.set_placeholder_text("Search applications...")
-        search_entry.connect("changed", self.on_search_changed)
-        self.search_entry = search_entry
-        search_box.pack_start(search_entry, True, True, 0)
-        
-        content.pack_start(search_box, False, False, 0)
-        
-        # Apps list
-        scrolled_apps = Gtk.ScrolledWindow()
-        scrolled_apps.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        root.pack_start(content, True, True, 0)
+
+        self.search = Gtk.Entry()
+        self.search.set_placeholder_text("Search applications")
+        self.search.get_style_context().add_class("store-search")
+        self.search.set_margin_top(16)
+        self.search.set_margin_start(20)
+        self.search.set_margin_end(20)
+        self.search.set_margin_bottom(8)
+        self.search.connect("changed", lambda _e: self.apps_list.invalidate_filter())
+        content.pack_start(self.search, False, False, 0)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.apps_list = Gtk.ListBox()
+        self.apps_list.get_style_context().add_class("store-apps")
         self.apps_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        scrolled_apps.add(self.apps_list)
-        content.pack_start(scrolled_apps, True, True, 0)
-        
-        # Populate apps
-        self.populate_apps()
-    
-    def check_installed(self):
-        installed = set()
-        try:
-            result = subprocess.run(
-                ["dpkg-query", "-W", "-f=${Package}\n"],
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            installed = set(result.stdout.strip().split("\n"))
-        except Exception:
-            pass
-        
-        self.installed_packages = installed
-        GLib.idle_add(self.update_install_buttons)
-    
-    def update_install_buttons(self):
-        for row in self.apps_list.get_children():
-            widget = row.get_child()
-            install_button = widget.get_children()[2]
-            package_name = install_button.package_name
-            
-            if package_name in self.installed_packages:
-                install_button.set_label("Installed")
-                install_button.get_style_context().add_class("installed")
-                install_button.set_sensitive(False)
-    
-    def populate_apps(self):
-        # Clear existing
-        for row in self.apps_list.get_children():
-            self.apps_list.remove(row)
-        
-        for app in PACKAGES:
-            if self.current_category != "all" and app["category"] != self.current_category:
-                continue
-            
-            search_text = self.search_entry.get_text().lower()
-            if search_text and search_text not in app["name"].lower() and search_text not in app["description"].lower():
-                continue
-            
-            app_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            app_box.get_style_context().add_class("app-item")
-            
-            # Name and button row
-            top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            
-            name_label = Gtk.Label(label=app["name"])
-            name_label.get_style_context().add_class("app-name")
-            name_label.set_halign(Gtk.Align.START)
-            top_row.pack_start(name_label, True, True, 0)
-            
-            install_button = Gtk.Button(label="Install")
-            install_button.get_style_context().add_class("install-button")
-            install_button.package_name = app["package"]
-            install_button.connect("clicked", self.on_install_clicked, app)
-            top_row.pack_start(install_button, False, False, 0)
-            
-            app_box.pack_start(top_row, False, False, 0)
-            
-            # Description
-            desc_label = Gtk.Label(label=app["description"])
-            desc_label.get_style_context().add_class("app-description")
-            desc_label.set_line_wrap(True)
-            desc_label.set_max_width_chars(60)
-            desc_label.set_halign(Gtk.Align.START)
-            desc_label.set_xalign(0)
-            app_box.pack_start(desc_label, False, False, 0)
-            
-            # Progress bar (hidden by default)
-            progress_bar = Gtk.ProgressBar()
-            progress_bar.set_show_text(True)
-            progress_bar.set_visible(False)
-            progress_bar.get_style_context().add_class("progress-bar")
-            app_box.pack_start(progress_bar, False, False, 0)
-            
-            # Terminal toggle (hidden by default)
-            terminal_toggle = Gtk.CheckButton(label="Show terminal")
-            terminal_toggle.set_visible(False)
-            terminal_toggle.get_style_context().add_class("terminal-toggle")
-            terminal_toggle.connect("toggled", self.on_terminal_toggled, app["package"])
-            app_box.pack_start(terminal_toggle, False, False, 0)
-            
+        self.apps_list.set_filter_func(self.filter_row)
+        scroller.add(self.apps_list)
+        content.pack_start(scroller, True, True, 0)
+
+        for name, package, category, description, icon_name in PACKAGES:
+            card = AppCard(self, name, package, description, icon_name)
+            card.category = category
+            card.search_text = f"{name} {description} {package}".lower()
             row = Gtk.ListBoxRow()
-            row.add(app_box)
+            row.card = card
+            row.add(card)
             self.apps_list.add(row)
-        
-        self.apps_list.show_all()
-        self.update_install_buttons()
-    
-    def on_category_changed(self, listbox, row):
-        self.current_category = row.category_id
-        self.populate_apps()
-    
-    def on_search_changed(self, entry):
-        self.populate_apps()
-    
-    def on_install_clicked(self, button, app):
-        if self.installing:
+            self.cards.append(card)
+
+        self.details = Gtk.Expander(label="Installation details")
+        self.details.set_margin_start(20)
+        self.details.set_margin_end(20)
+        self.details.set_margin_bottom(10)
+        log_view = Gtk.TextView()
+        log_view.get_style_context().add_class("install-log")
+        log_view.set_editable(False)
+        log_view.set_monospace(True)
+        log_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self.log_buffer = log_view.get_buffer()
+        log_scroll = Gtk.ScrolledWindow()
+        log_scroll.set_min_content_height(150)
+        log_scroll.add(log_view)
+        self.log_view = log_view
+        self.details.add(log_scroll)
+        content.pack_start(self.details, False, False, 0)
+
+        self.category_list.select_row(self.category_list.get_row_at_index(0))
+
+    def filter_row(self, row):
+        card = row.card
+        if self.category != "all" and card.category != self.category:
+            return False
+        text = self.search.get_text().strip().lower()
+        return not text or text in card.search_text
+
+    def on_category_selected(self, _listbox, row):
+        if row is None:
+            return
+        self.category = row.category_key
+        self.apps_list.invalidate_filter()
+
+    def load_installed(self):
+        names = installed_packages()
+        GLib.idle_add(self.apply_installed, names)
+
+    def apply_installed(self, names):
+        self.installed = names
+        for card in self.cards:
+            if card.package in names:
+                card.mark_installed()
+        return False
+
+    def start_install(self, card):
+        if self.installing is not None:
             dialog = Gtk.MessageDialog(
+                parent=self,
                 message_type=Gtk.MessageType.INFO,
                 buttons=Gtk.ButtonsType.CLOSE,
-                text="Installation in Progress",
+                text="Another installation is running",
             )
-            dialog.format_secondary_text("Another application is currently being installed. Please wait.")
+            dialog.format_secondary_text("Wait for it to finish, then try again.")
             dialog.run()
             dialog.destroy()
             return
-        
-        self.installing = app["package"]
-        button.set_sensitive(False)
-        button.set_label("Installing...")
-        
-        # Find the progress bar and terminal toggle
-        app_box = button.get_parent().get_parent()
-        progress_bar = app_box.get_children()[2]
-        terminal_toggle = app_box.get_children()[3]
-        
-        progress_bar.set_visible(True)
-        progress_bar.set_text("Preparing...")
-        progress_bar.set_fraction(0.0)
-        terminal_toggle.set_visible(True)
-        
-        # Start installation in background thread
-        threading.Thread(
-            target=self.install_package,
-            args=(app["package"], progress_bar, terminal_toggle, button),
-            daemon=True
-        ).start()
-    
-    def on_terminal_toggled(self, toggle, package_name):
-        if toggle.get_active():
-            self.show_terminal(package_name)
-        else:
-            self.hide_terminal()
-    
-    def show_terminal(self, package_name):
-        if self.terminal_window:
-            self.terminal_window.present()
-            return
-        
-        self.terminal_window = Gtk.Window(title=f"Installing {package_name}")
-        self.terminal_window.set_default_size(600, 400)
-        self.terminal_window.set_position(Gtk.WindowPosition.CENTER)
-        
-        terminal = Gtk.VBox()
-        self.terminal_window.add(terminal)
-        
-        text_view = Gtk.TextView()
-        text_view.set_editable(False)
-        text_view.set_wrap_mode(Gtk.WrapMode.WORD)
-        text_view.get_buffer().set_text("Installation terminal output will appear here...\n")
-        self.terminal_text = text_view.get_buffer()
-        
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.add(text_view)
-        terminal.pack_start(scrolled, True, True, 0)
-        
-        close_button = Gtk.Button(label="Close Terminal")
-        close_button.connect("clicked", self.hide_terminal)
-        terminal.pack_start(close_button, False, False, 8)
-        
-        self.terminal_window.connect("destroy", self.on_terminal_closed)
-        self.terminal_window.show_all()
-    
-    def hide_terminal(self, button=None):
-        if self.terminal_window:
-            self.terminal_window.destroy()
-            self.terminal_window = None
-    
-    def on_terminal_closed(self, window):
-        self.terminal_window = None
-    
-    def install_package(self, package_name, progress_bar, terminal_toggle, button):
+        self.installing = card
+        card.set_busy(True)
+        card.status.set_text("Preparing\u2026")
+        self.log_buffer.set_text("")
+        self.details.set_visible(True)
+        self.pulse_id = GLib.timeout_add(120, self.pulse)
+        threading.Thread(target=self.run_install, args=(card,), daemon=True).start()
+
+    def pulse(self):
+        if self.installing is None:
+            return False
+        self.installing.progress.pulse()
+        return True
+
+    def append_log(self, text):
+        end = self.log_buffer.get_end_iter()
+        self.log_buffer.insert(end, text)
+        mark = self.log_buffer.create_mark(None, self.log_buffer.get_end_iter(), False)
+        self.log_view.scroll_mark_onscreen(mark)
+        self.log_buffer.delete_mark(mark)
+        return False
+
+    def set_status(self, card, text):
+        card.status.set_text(text)
+        return False
+
+    def stream(self, command, card, label):
+        GLib.idle_add(self.set_status, card, label)
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        output = []
+        for line in process.stdout:
+            output.append(line)
+            GLib.idle_add(self.append_log, line)
+            if "Unpacking" in line:
+                GLib.idle_add(self.set_status, card, "Installing\u2026")
+            elif "Setting up" in line:
+                GLib.idle_add(self.set_status, card, "Configuring\u2026")
+        process.wait()
+        return process.returncode, "".join(output)
+
+    def run_install(self, card):
+        env_prefix = ["sudo", "-n", "env", "DEBIAN_FRONTEND=noninteractive"]
         try:
-            # Update progress
-            GLib.idle_add(lambda: progress_bar.set_text("Downloading..."))
-            GLib.idle_add(lambda: progress_bar.set_fraction(0.3))
-            
-            # Run apt-get install with sudo
-            process = subprocess.Popen(
-                ["sudo", "apt-get", "install", "-y", package_name],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
+            code, output = self.stream(env_prefix + ["apt-get", "update"], card, "Refreshing package lists\u2026")
+            if code != 0:
+                GLib.idle_add(self.finish, card, False, self.explain(output, "Could not refresh package lists."))
+                return
+            code, output = self.stream(
+                env_prefix + ["apt-get", "install", "-y", card.package], card, "Downloading\u2026"
             )
-            
-            for line in process.stdout:
-                if self.terminal_window and self.terminal_text:
-                    GLib.idle_add(lambda l=line: self.terminal_text.insert(self.terminal_text.get_end_iter(), l))
-                    GLib.idle_add(lambda: self.terminal_text.scroll_mark_onscreen(self.terminal_text.get_insert()))
-                
-                # Update progress based on output
-                if "Unpacking" in line:
-                    GLib.idle_add(lambda: progress_bar.set_text("Installing..."))
-                    GLib.idle_add(lambda: progress_bar.set_fraction(0.6))
-                elif "Setting up" in line:
-                    GLib.idle_add(lambda: progress_bar.set_text("Configuring..."))
-                    GLib.idle_add(lambda: progress_bar.set_fraction(0.8))
-            
-            process.wait()
-            
-            if process.returncode == 0:
-                GLib.idle_add(lambda: progress_bar.set_text("Complete!"))
-                GLib.idle_add(lambda: progress_bar.set_fraction(1.0))
-                GLib.idle_add(lambda: button.set_label("Installed"))
-                GLib.idle_add(lambda: button.get_style_context().add_class("installed"))
-                GLib.idle_add(lambda: self.installed_packages.add(package_name))
+            if code == 0:
+                GLib.idle_add(self.finish, card, True, "")
             else:
-                GLib.idle_add(lambda: progress_bar.set_text("Failed"))
-                GLib.idle_add(lambda: progress_bar.set_fraction(0.0))
-                GLib.idle_add(lambda: button.set_sensitive(True))
-                GLib.idle_add(lambda: button.set_label("Retry"))
-        
-        except Exception as e:
-            GLib.idle_add(lambda: progress_bar.set_text("Error"))
-            GLib.idle_add(lambda: progress_bar.set_fraction(0.0))
-            GLib.idle_add(lambda: button.set_sensitive(True))
-            GLib.idle_add(lambda: button.set_label("Retry"))
-        
-        finally:
-            self.installing = None
-            GLib.idle_add(lambda: terminal_toggle.set_visible(False))
+                GLib.idle_add(self.finish, card, False, self.explain(output, "Installation failed."))
+        except Exception:
+            log_error(traceback.format_exc())
+            GLib.idle_add(self.finish, card, False, "Something went wrong. Open the details for more information.")
+
+    def explain(self, output, fallback):
+        lowered = output.lower()
+        if "could not resolve" in lowered or "temporary failure" in lowered or "failed to fetch" in lowered:
+            return "No internet connection. Connect to a network and try again."
+        if "password is required" in lowered:
+            return "Administrator access was refused."
+        if "unable to locate package" in lowered:
+            return "This package is not available from the configured sources."
+        return fallback
+
+    def finish(self, card, success, message):
+        self.installing = None
+        if self.pulse_id is not None:
+            GLib.source_remove(self.pulse_id)
+            self.pulse_id = None
+        card.progress.set_visible(False)
+        if success:
+            self.installed.add(card.package)
+            card.status.set_visible(False)
+            card.mark_installed()
+        else:
+            card.button.set_sensitive(True)
+            card.button.set_label("Retry")
+            card.status.set_text(message)
+            card.status.set_visible(True)
+        return False
 
 
 def main():
@@ -415,4 +426,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        text = traceback.format_exc()
+        log_error(text)
+        print(text, file=sys.stderr)
+        sys.exit(1)
