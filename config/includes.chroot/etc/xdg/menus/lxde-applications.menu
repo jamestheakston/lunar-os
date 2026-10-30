@@ -11,11 +11,10 @@
       <Filename>lunar-store.desktop</Filename>
       <Filename>lunar-metadata.desktop</Filename>
       <Filename>lunar-welcome.desktop</Filename>
-      <Filename>lunar-tour.desktop</Filename>
-      <Filename>lunar-wallpaper.desktop</Filename>
       <Filename>lunar-shortcuts.desktop</Filename>
       <Filename>lunar-sounds.desktop</Filename>
       <Filename>lunar-about.desktop</Filename>
+      <Filename>lunar-updater.desktop</Filename>
     </Include>
   </Menu>
   

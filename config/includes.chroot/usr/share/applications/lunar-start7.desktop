@@ -6,5 +6,4 @@ Comment=Open the Lunar start menu
 Exec=/usr/share/lunar-os/lunar-start7.py
 Icon=/usr/share/lunar-os/start-orb.png
 Terminal=false
-NoDisplay=true
 Categories=System;
